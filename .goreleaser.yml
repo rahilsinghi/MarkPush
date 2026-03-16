@@ -1,0 +1,32 @@
+version: 2
+project_name: markpush
+
+builds:
+  - id: markpush
+    dir: cli
+    main: .
+    binary: markpush
+    goos:
+      - darwin
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+
+archives:
+  - format: tar.gz
+    format_overrides:
+      - goos: windows
+        format: zip
+
+checksum:
+  name_template: "checksums.txt"
+
+release:
+  github:
+    owner: rahilsinghi
+    name: MarkPush
