@@ -19,7 +19,7 @@ actor CloudReceiver {
     }
 
     /// Subscribe to realtime changes on the pushes table.
-    func start() async {
+    func start() async throws {
         let channel = client.realtimeV2.channel("pushes:\(deviceID)")
 
         let changes = await channel.postgresChange(
@@ -29,7 +29,7 @@ actor CloudReceiver {
             filter: .eq("receiver_id", value: deviceID)
         )
 
-        await channel.subscribe()
+        try await channel.subscribeWithError()
 
         for await change in changes {
             guard let payload = change.record["payload"]?.stringValue else { continue }
@@ -42,7 +42,7 @@ actor CloudReceiver {
 
             // Mark as delivered.
             let deliveredAt = ISO8601DateFormatter().string(from: .now)
-            try? await client.from("pushes")
+            _ = try? await client.from("pushes")
                 .update(["delivered": "true", "delivered_at": deliveredAt])
                 .eq("id", value: change.record["id"]?.stringValue ?? "")
                 .execute()

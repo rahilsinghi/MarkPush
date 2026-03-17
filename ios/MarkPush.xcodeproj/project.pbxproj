@@ -53,7 +53,7 @@
 
 /* Begin PBXFileReference section */
 		03ABB55AFC24C4F9B7ECB691 /* CloudReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudReceiver.swift; sourceTree = "<group>"; };
-		0DBB52EA5E279128707E8E52 /* MarkPush.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = MarkPush.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		0DBB52EA5E279128707E8E52 /* MarkPush.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MarkPush.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		137520E5574BC05ADD007E62 /* Device.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Device.swift; sourceTree = "<group>"; };
 		1C1C6CFE6FF855627BA9E4E4 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		2DA24215A4C112F595BC7993 /* MarkDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkDocument.swift; sourceTree = "<group>"; };
@@ -62,7 +62,7 @@
 		32ED71BD66702937437764D7 /* FeedFeature.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedFeature.swift; sourceTree = "<group>"; };
 		41271F5FEA941FE8CCD1E3CF /* Annotation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Annotation.swift; sourceTree = "<group>"; };
 		4B0C8E5E6CB836E8E5052C7E /* FeedFeatureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedFeatureTests.swift; sourceTree = "<group>"; };
-		4F1F05796D1CB3039095E76A /* MarkPushTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = MarkPushTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		4F1F05796D1CB3039095E76A /* MarkPushTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MarkPushTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		57C600CAE5F8E7851298E772 /* Keychain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Keychain.swift; sourceTree = "<group>"; };
 		67235EC2286261DED9B916B0 /* MarkPush.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MarkPush.entitlements; sourceTree = "<group>"; };
 		6B81378454729CD5E000D3A2 /* PushMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushMessage.swift; sourceTree = "<group>"; };
@@ -317,7 +317,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
-				LastUpgradeCheck = 1430;
+				LastUpgradeCheck = 2630;
 				TargetAttributes = {
 					5FF00030E05DE0F7B7D493FB = {
 						ProvisioningStyle = Automatic;
@@ -441,6 +441,7 @@
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -461,6 +462,7 @@
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_STRICT_CONCURRENCY = targeted;
@@ -476,6 +478,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = MWU56C4YRR;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = MarkPush/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -527,6 +530,7 @@
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -540,6 +544,7 @@
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_STRICT_CONCURRENCY = targeted;
@@ -555,6 +560,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = MWU56C4YRR;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = MarkPush/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (

@@ -66,9 +66,6 @@ targets:
         product: KeychainAccess
     entitlements:
       path: MarkPush/MarkPush.entitlements
-      properties:
-        com.apple.security.app-sandbox: true
-        com.apple.developer.networking.multicast: true
 
   MarkPushTests:
     type: bundle.unit-test
