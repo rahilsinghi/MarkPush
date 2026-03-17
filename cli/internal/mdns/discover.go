@@ -30,7 +30,9 @@ func Discover(ctx context.Context, timeout time.Duration) (*Device, error) {
 
 	go func() {
 		for entry := range entries {
-			dev := parseEntry(entry)
+			// Copy entry fields immediately — hashicorp/mdns reuses entry structs.
+			entryCopy := copyEntry(entry)
+			dev := parseEntry(entryCopy)
 			if dev != nil {
 				result <- dev
 				return
@@ -98,6 +100,18 @@ func DiscoverAll(ctx context.Context, timeout time.Duration) ([]*Device, error) 
 	}
 
 	return devices, nil
+}
+
+// copyEntry creates a shallow copy of the service entry to avoid data races
+// with hashicorp/mdns which reuses entry structs across goroutines.
+func copyEntry(entry *mdns.ServiceEntry) *mdns.ServiceEntry {
+	if entry == nil {
+		return nil
+	}
+	cp := *entry
+	cp.InfoFields = make([]string, len(entry.InfoFields))
+	copy(cp.InfoFields, entry.InfoFields)
+	return &cp
 }
 
 func parseEntry(entry *mdns.ServiceEntry) *Device {

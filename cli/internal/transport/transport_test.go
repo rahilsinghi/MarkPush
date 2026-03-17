@@ -84,10 +84,18 @@ func TestSelect_Cloud_MissingConfig(t *testing.T) {
 	}
 }
 
-func TestSelect_Auto_NoDeviceNoCloud(t *testing.T) {
-	_, err := Select("auto", Options{})
-	if err == nil {
-		t.Error("expected error when no device found and no cloud config")
+func TestSelect_Auto(t *testing.T) {
+	// Auto mode does real mDNS discovery. On a network with a MarkPush device,
+	// it returns WiFiSender; without one, it returns an error (no cloud config).
+	// Either outcome is valid — we just verify it doesn't panic.
+	tr, err := Select("auto", Options{})
+	if err != nil {
+		// Expected when no device on network and no cloud config.
+		return
+	}
+	// If a device was found, we should get a WiFiSender.
+	if _, ok := tr.(*WiFiSender); !ok {
+		t.Errorf("auto with WiFi device should return *WiFiSender, got %T", tr)
 	}
 }
 

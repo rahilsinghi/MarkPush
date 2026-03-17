@@ -6,23 +6,29 @@ struct AppFeature {
     struct State: Equatable {
         var selectedTab: Tab = .feed
         var feed = FeedFeature.State()
+        var library = LibraryFeature.State()
         var settings = SettingsFeature.State()
     }
 
     enum Tab: Equatable {
         case feed
+        case library
         case settings
     }
 
     enum Action {
         case tabSelected(Tab)
         case feed(FeedFeature.Action)
+        case library(LibraryFeature.Action)
         case settings(SettingsFeature.Action)
     }
 
     var body: some ReducerOf<Self> {
         Scope(state: \.feed, action: \.feed) {
             FeedFeature()
+        }
+        Scope(state: \.library, action: \.library) {
+            LibraryFeature()
         }
         Scope(state: \.settings, action: \.settings) {
             SettingsFeature()
@@ -32,7 +38,7 @@ struct AppFeature {
             case .tabSelected(let tab):
                 state.selectedTab = tab
                 return .none
-            case .feed, .settings:
+            case .feed, .library, .settings:
                 return .none
             }
         }
@@ -55,6 +61,14 @@ struct AppView: View {
                 Label("Feed", systemImage: "doc.text")
             }
             .tag(AppFeature.Tab.feed)
+
+            NavigationStack {
+                LibraryView(store: store.scope(state: \.library, action: \.library))
+            }
+            .tabItem {
+                Label("Library", systemImage: "books.vertical")
+            }
+            .tag(AppFeature.Tab.library)
 
             NavigationStack {
                 SettingsView(store: store.scope(state: \.settings, action: \.settings))
