@@ -3,7 +3,7 @@
  * Reuses the same flow as the Go CLI — iOS app needs no changes.
  */
 
-import { createServer, type Server } from "node:http";
+import { createServer } from "node:http";
 import { randomBytes } from "node:crypto";
 import { networkInterfaces } from "node:os";
 import qrcode from "qrcode-terminal";
