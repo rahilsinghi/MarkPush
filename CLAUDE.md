@@ -66,7 +66,11 @@ Open `ios/MarkPush.xcodeproj` in Xcode 16+
 Select a simulator or device and run.
 
 ## Current Phase
-Phase 1: CLI Tool ← YOU ARE HERE
+Phase 1: CLI Tool ✅
+Phase 2: WiFi Transport ✅
+Phase 3: iOS App ✅ (source complete, needs Xcode project setup)
+Phase 4: Cloud Relay ✅
+Phase 5: Power Features ← NEXT
 
 ## Do Not
 - Do not use UIKit for new UI code

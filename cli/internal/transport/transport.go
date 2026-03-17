@@ -19,18 +19,11 @@ type Transport interface {
 	Send(ctx context.Context, msg *protocol.PushMessage) error
 }
 
-// CloudTransport sends messages via the Supabase cloud relay.
-// Not implemented yet.
-type CloudTransport struct{}
-
-// NewCloudTransport creates a new cloud transport.
-func NewCloudTransport() *CloudTransport {
-	return &CloudTransport{}
-}
-
-// Send is not yet implemented for cloud transport.
-func (t *CloudTransport) Send(_ context.Context, _ *protocol.PushMessage) error {
-	return fmt.Errorf("cloud transport: not implemented (Phase 4)")
+// Options holds configuration for transport selection.
+type Options struct {
+	SupabaseURL string
+	SupabaseKey string
+	ReceiverID  string
 }
 
 // DryRunTransport prints the PushMessage as formatted JSON without sending.
@@ -62,24 +55,31 @@ func (t *DryRunTransport) Send(_ context.Context, msg *protocol.PushMessage) err
 // Select returns the appropriate transport based on the given mode.
 // Valid modes: "dry-run", "wifi", "cloud", "auto".
 // In "auto" mode, it tries WiFi discovery first and falls back to cloud.
-func Select(mode string) (Transport, error) {
+func Select(mode string, opts Options) (Transport, error) {
 	switch mode {
 	case "dry-run":
 		return NewDryRunTransport(nil), nil
 	case "wifi":
 		return NewWiFiSender(), nil
 	case "cloud":
-		return NewCloudTransport(), nil
+		return newCloud(opts)
 	case "auto":
-		return selectAuto()
+		return selectAuto(opts)
 	default:
 		return nil, fmt.Errorf("unknown transport mode: %q", mode)
 	}
 }
 
+func newCloud(opts Options) (Transport, error) {
+	if opts.SupabaseURL == "" || opts.SupabaseKey == "" {
+		return nil, fmt.Errorf("cloud transport: supabase_url and supabase_key required in config")
+	}
+	return NewCloudSender(opts.SupabaseURL, opts.SupabaseKey, opts.ReceiverID), nil
+}
+
 // selectAuto tries mDNS discovery for 2 seconds. If a device is found,
 // uses WiFi. Otherwise falls back to cloud.
-func selectAuto() (Transport, error) {
+func selectAuto(opts Options) (Transport, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
@@ -88,6 +88,10 @@ func selectAuto() (Transport, error) {
 		return NewWiFiSenderWithDevice(dev), nil
 	}
 
-	// Fallback to cloud.
-	return NewCloudTransport(), nil
+	// Fallback to cloud if configured.
+	if opts.SupabaseURL != "" && opts.SupabaseKey != "" {
+		return NewCloudSender(opts.SupabaseURL, opts.SupabaseKey, opts.ReceiverID), nil
+	}
+
+	return nil, fmt.Errorf("no device found on WiFi and cloud not configured; use --dry-run or configure cloud relay")
 }

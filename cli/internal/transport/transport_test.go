@@ -29,7 +29,6 @@ func TestDryRunTransport_Send(t *testing.T) {
 		t.Error("output should contain 'dry-run' header")
 	}
 
-	// Extract JSON from output (after the header line).
 	lines := strings.SplitN(output, "\n", 2)
 	if len(lines) < 2 {
 		t.Fatal("output should have header + JSON")
@@ -45,7 +44,7 @@ func TestDryRunTransport_Send(t *testing.T) {
 }
 
 func TestSelect_DryRun(t *testing.T) {
-	tr, err := Select("dry-run")
+	tr, err := Select("dry-run", Options{})
 	if err != nil {
 		t.Fatalf("Select: %v", err)
 	}
@@ -55,7 +54,7 @@ func TestSelect_DryRun(t *testing.T) {
 }
 
 func TestSelect_WiFi(t *testing.T) {
-	tr, err := Select("wifi")
+	tr, err := Select("wifi", Options{})
 	if err != nil {
 		t.Fatalf("Select: %v", err)
 	}
@@ -65,41 +64,36 @@ func TestSelect_WiFi(t *testing.T) {
 }
 
 func TestSelect_Cloud(t *testing.T) {
-	tr, err := Select("cloud")
+	tr, err := Select("cloud", Options{
+		SupabaseURL: "https://test.supabase.co",
+		SupabaseKey: "test-key",
+		ReceiverID:  "recv-1",
+	})
 	if err != nil {
 		t.Fatalf("Select: %v", err)
 	}
-	if _, ok := tr.(*CloudTransport); !ok {
-		t.Errorf("expected *CloudTransport, got %T", tr)
+	if _, ok := tr.(*CloudSender); !ok {
+		t.Errorf("expected *CloudSender, got %T", tr)
 	}
 }
 
-func TestSelect_Auto(t *testing.T) {
-	// Auto falls back to cloud when no device is found.
-	tr, err := Select("auto")
-	if err != nil {
-		t.Fatalf("Select auto: %v", err)
+func TestSelect_Cloud_MissingConfig(t *testing.T) {
+	_, err := Select("cloud", Options{})
+	if err == nil {
+		t.Error("expected error when cloud config is missing")
 	}
-	// Should fall back to cloud since no mDNS device is on the network.
-	if _, ok := tr.(*CloudTransport); !ok {
-		t.Errorf("expected *CloudTransport fallback, got %T", tr)
+}
+
+func TestSelect_Auto_NoDeviceNoCloud(t *testing.T) {
+	_, err := Select("auto", Options{})
+	if err == nil {
+		t.Error("expected error when no device found and no cloud config")
 	}
 }
 
 func TestSelect_Unknown(t *testing.T) {
-	_, err := Select("carrier-pigeon")
+	_, err := Select("carrier-pigeon", Options{})
 	if err == nil {
 		t.Error("unknown mode should return error")
-	}
-}
-
-func TestCloudTransport_NotImplemented(t *testing.T) {
-	tr := NewCloudTransport()
-	err := tr.Send(context.Background(), testMessage())
-	if err == nil {
-		t.Error("Cloud send should return not-implemented error")
-	}
-	if !strings.Contains(err.Error(), "not implemented") {
-		t.Errorf("error = %q, should contain 'not implemented'", err)
 	}
 }

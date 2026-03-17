@@ -95,7 +95,15 @@ func runPush(cmd *cobra.Command, args []string) error {
 	if mode == "dry-run" {
 		tr = transport.NewDryRunTransport(os.Stdout)
 	} else {
-		tr, err = transport.Select(mode)
+		transportOpts := transport.Options{
+			SupabaseURL: cfg.Cloud.SupabaseURL,
+			SupabaseKey: cfg.Cloud.SupabaseKey,
+		}
+		// Use first paired device as receiver.
+		if len(cfg.Devices) > 0 {
+			transportOpts.ReceiverID = cfg.Devices[0].ID
+		}
+		tr, err = transport.Select(mode, transportOpts)
 		if err != nil {
 			return err
 		}
