@@ -1,4 +1,5 @@
 import ComposableArchitecture
+import Foundation
 import Testing
 
 @testable import MarkPush
@@ -33,7 +34,7 @@ struct PairingFeatureTests {
             $0.step = .pairing
         }
 
-        await store.receive(.pairingCompleted("MacBook Pro")) {
+        await store.receive(\.pairingCompleted) {
             $0.step = .success
             $0.pairedDeviceName = "MacBook Pro"
         }
@@ -51,7 +52,7 @@ struct PairingFeatureTests {
 
         await store.receive(\.pairingFailed) {
             $0.step = .error
-            $0.errorMessage = .some // any error message
+            $0.errorMessage = "The data couldn\u{2019}t be read because it isn\u{2019}t in the correct format."
         }
     }
 }
