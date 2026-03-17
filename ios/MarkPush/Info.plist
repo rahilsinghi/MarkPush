@@ -47,5 +47,20 @@
 	<array>
 		<string>_markpush._tcp</string>
 	</array>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.rahilsinghi.markpush</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>markpush</string>
+			</array>
+		</dict>
+	</array>
+	<key>SupabaseURL</key>
+	<string>https://usppcgqgtdnmfamjyiqc.supabase.co</string>
+	<key>SupabaseAnonKey</key>
+	<string>sb_publishable_vvdN4gl-p5Pf3v7sFYstAQ_3-_rgE7d</string>
 </dict>
 </plist>

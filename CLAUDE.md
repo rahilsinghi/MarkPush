@@ -113,6 +113,9 @@ cd mcp && npm run dev  # run locally
 - **TCA sheet bindings**: use `Binding(get:set:)` pattern, not `$store.property` for non-@BindingState properties
 - **`.accent` is not a ShapeStyle** — use `.tint` instead
 - After cleaning DerivedData, must re-resolve packages: `File → Packages → Resolve Package Versions`
+- **Supabase Auth**: set `SupabaseURL` and `SupabaseAnonKey` in `ios/MarkPush/Info.plist` before running
+- **Magic link deep links**: URL scheme `markpush://` registered in Info.plist, handled via `.onOpenURL` in MarkPushApp
+- **SupabaseClient is Sendable** — no need for `nonisolated(unsafe)` wrapper (unlike KeychainAccess)
 
 ## Current Status
 Phase 1: CLI Tool ✅
@@ -122,7 +125,13 @@ Phase 4: Cloud Relay ✅
 Phase 5: Power Features ✅
 Phase 6: OSS Packaging ✅
 MCP Server ✅ (6 tools, 4 prompts, 32 tests passing)
-**Next:** Apply design system from `design/` folder, npm publish MCP, end-to-end testing
+Design System ✅ (custom fonts, semantic colors, typography, spacing)
+Supabase Auth Backend ✅ (beta_whitelist, profiles, devices, push_tokens, RLS)
+iOS Auth Flow ✅ (AuthClient, AuthFeature, magic link login, deep links, sign out)
+E2E Backend Tests ✅ (33 SQL assertions: schema, RLS dual-path, profiles, devices, whitelist, tokens)
+E2E iOS Tests ✅ (40 TCA tests: Auth 13, Settings 8, App 4, Library 5, Feed 3, Pairing 3, Reader 4)
+Supabase Live ✅ (migrations applied, rahilsinghi300@gmail.com whitelisted, redirect URLs configured)
+**Next:** Manual testing (magic link flow, QR pairing, push delivery), npm publish MCP, TestFlight beta
 
 ## Key Docs
 - `docs/system-architecture.md` — Full system diagrams

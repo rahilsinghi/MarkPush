@@ -4,10 +4,15 @@ import ComposableArchitecture
 struct AppFeature {
     @ObservableState
     struct State: Equatable {
+        var auth = AuthFeature.State()
         var selectedTab: Tab = .feed
         var feed = FeedFeature.State()
         var library = LibraryFeature.State()
         var settings = SettingsFeature.State()
+
+        var isAuthenticated: Bool {
+            auth.step == .authenticated
+        }
     }
 
     enum Tab: Equatable {
@@ -17,6 +22,8 @@ struct AppFeature {
     }
 
     enum Action {
+        case auth(AuthFeature.Action)
+        case handleDeepLink(URL)
         case tabSelected(Tab)
         case feed(FeedFeature.Action)
         case library(LibraryFeature.Action)
@@ -24,6 +31,9 @@ struct AppFeature {
     }
 
     var body: some ReducerOf<Self> {
+        Scope(state: \.auth, action: \.auth) {
+            AuthFeature()
+        }
         Scope(state: \.feed, action: \.feed) {
             FeedFeature()
         }
@@ -35,10 +45,19 @@ struct AppFeature {
         }
         Reduce { state, action in
             switch action {
+            case .handleDeepLink(let url):
+                return .send(.auth(.handleDeepLink(url)))
+
+            case .settings(.signOutCompleted):
+                state.auth = AuthFeature.State()
+                state.auth.step = .landing
+                return .none
+
             case .tabSelected(let tab):
                 state.selectedTab = tab
                 return .none
-            case .feed, .library, .settings:
+
+            case .auth, .feed, .library, .settings:
                 return .none
             }
         }
@@ -53,6 +72,16 @@ struct AppView: View {
     @Bindable var store: StoreOf<AppFeature>
 
     var body: some View {
+        Group {
+            if store.isAuthenticated {
+                mainTabView
+            } else {
+                AuthView(store: store.scope(state: \.auth, action: \.auth))
+            }
+        }
+    }
+
+    private var mainTabView: some View {
         TabView(selection: $store.selectedTab.sending(\.tabSelected)) {
             NavigationStack {
                 FeedView(store: store.scope(state: \.feed, action: \.feed))

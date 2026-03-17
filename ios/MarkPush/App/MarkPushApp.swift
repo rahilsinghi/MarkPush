@@ -22,6 +22,9 @@ struct MarkPushApp: App {
         WindowGroup {
             AppView(store: Self.store)
                 .modelContainer(container)
+                .onOpenURL { url in
+                    Self.store.send(.handleDeepLink(url))
+                }
         }
     }
 }

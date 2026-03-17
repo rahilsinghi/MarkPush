@@ -6,6 +6,22 @@ struct SettingsView: View {
 
     var body: some View {
         Form {
+            Section("Account") {
+                if let email = store.userEmail {
+                    LabeledContent("Email", value: email)
+                }
+                Button(role: .destructive) {
+                    store.send(.signOutTapped)
+                } label: {
+                    if store.isSigningOut {
+                        ProgressView()
+                    } else {
+                        Text("Sign Out")
+                    }
+                }
+                .disabled(store.isSigningOut)
+            }
+
             Section("Devices") {
                 if store.hasPairedDevice {
                     Label("Paired", systemImage: "checkmark.circle.fill")

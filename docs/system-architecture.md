@@ -195,46 +195,56 @@ this exact same format.
 ## iOS App Architecture (TCA)
 
 ```
-┌─────────────────────────────────────────────┐
-│ AppFeature (root)                            │
-│                                              │
-│  ┌────────┐  ┌─────────┐  ┌──────────┐     │
-│  │ Feed   │  │ Library │  │ Settings │     │
-│  │ Tab    │  │ Tab     │  │ Tab      │     │
-│  └───┬────┘  └────┬────┘  └────┬─────┘     │
-│      │            │            │             │
-│  ┌───▼─────────┐  │     ┌─────▼──────────┐  │
-│  │ FeedFeature │  │     │SettingsFeature │  │
-│  │ State:      │  │     │ State:         │  │
-│  │  documents  │  │     │  fontSize      │  │
-│  │  isConnected│  │     │  hasPaired     │  │
-│  │ Actions:    │  │     │ Actions:       │  │
-│  │  start      │  │     │  showPairing   │  │
-│  │  received   │  │     │  setFont       │  │
-│  │  pin/archive│  │     └────────────────┘  │
-│  └───┬─────────┘  │                         │
-│      │            │                         │
-│  ┌───▼─────────┐  │  ┌──────────────────┐   │
-│  │ReaderFeature│  │  │ PairingFeature   │   │
-│  │ State:      │  │  │ State:           │   │
-│  │  content    │  │  │  step            │   │
-│  │  fontSize   │  │  │  deviceName      │   │
-│  │  isTOC      │  │  │ Actions:         │   │
-│  │ Actions:    │  │  │  scan            │   │
-│  │  toggleTOC  │  │  │  qrCodeScanned   │   │
-│  │  setFont    │  │  │  completed       │   │
-│  └─────────────┘  │  └──────────────────┘   │
-│                   │                         │
-│            ┌──────▼──────────┐              │
-│            │ LibraryFeature  │              │
-│            │ State:          │              │
-│            │  searchQuery    │              │
-│            │  filter         │              │
-│            │  sortOrder      │              │
-│            └─────────────────┘              │
-└─────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────┐
+│ AppFeature (root)                                  │
+│                                                    │
+│  ┌──────────────────────────────────────────┐     │
+│  │ AuthFeature (gates entire app)            │     │
+│  │ State: step, email, isLoading, error      │     │
+│  │ Steps: checking → landing → magicLinkSent │     │
+│  │        → authenticated                    │     │
+│  │ Deep link: markpush://auth/callback       │     │
+│  └──────────────────┬───────────────────────┘     │
+│                     │ authenticated?               │
+│                     ▼                              │
+│  ┌────────┐  ┌─────────┐  ┌──────────┐           │
+│  │ Feed   │  │ Library │  │ Settings │           │
+│  │ Tab    │  │ Tab     │  │ Tab      │           │
+│  └───┬────┘  └────┬────┘  └────┬─────┘           │
+│      │            │            │                   │
+│  ┌───▼─────────┐  │     ┌─────▼──────────┐       │
+│  │ FeedFeature │  │     │SettingsFeature │       │
+│  │ State:      │  │     │ State:         │       │
+│  │  documents  │  │     │  fontSize      │       │
+│  │  isConnected│  │     │  hasPaired     │       │
+│  │ Actions:    │  │     │  userEmail     │       │
+│  │  start      │  │     │ Actions:       │       │
+│  │  received   │  │     │  showPairing   │       │
+│  │  pin/archive│  │     │  signOut       │       │
+│  └───┬─────────┘  │     └────────────────┘       │
+│      │            │                               │
+│  ┌───▼─────────┐  │  ┌──────────────────┐        │
+│  │ReaderFeature│  │  │ PairingFeature   │        │
+│  │ State:      │  │  │ State:           │        │
+│  │  content    │  │  │  step            │        │
+│  │  fontSize   │  │  │  deviceName      │        │
+│  │  isTOC      │  │  │ Actions:         │        │
+│  │ Actions:    │  │  │  scan            │        │
+│  │  toggleTOC  │  │  │  qrCodeScanned   │        │
+│  │  setFont    │  │  │  completed       │        │
+│  └─────────────┘  │  └──────────────────┘        │
+│                   │                               │
+│            ┌──────▼──────────┐                    │
+│            │ LibraryFeature  │                    │
+│            │ State:          │                    │
+│            │  searchQuery    │                    │
+│            │  filter         │                    │
+│            │  sortOrder      │                    │
+│            └─────────────────┘                    │
+└───────────────────────────────────────────────────┘
 
 Dependencies (injectable):
+  AuthClient     → signInWithOTP, handleDeepLink, restoreSession, signOut
   MarkPushClient → startReceiving, decryptContent, completePairing
 ```
 
