@@ -11,7 +11,7 @@ actor WiFiReceiver {
     private var continuation: AsyncStream<PushMessage>.Continuation?
 
     /// Stream of incoming push messages.
-    let messages: AsyncStream<PushMessage>
+    nonisolated let messages: AsyncStream<PushMessage>
 
     init(deviceID: String) {
         self.deviceID = deviceID

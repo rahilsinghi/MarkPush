@@ -41,7 +41,12 @@ struct SettingsView: View {
         }
         .navigationTitle("Settings")
         .onAppear { store.send(.onAppear) }
-        .sheet(isPresented: $store.showPairing) {
+        .sheet(isPresented: Binding(
+            get: { store.showPairing },
+            set: { newValue in
+                if !newValue { store.send(.dismissPairing) }
+            }
+        )) {
             PairingView(
                 store: Store(initialState: PairingFeature.State()) {
                     PairingFeature()

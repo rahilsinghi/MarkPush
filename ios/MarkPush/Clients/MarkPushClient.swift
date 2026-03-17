@@ -1,5 +1,6 @@
 import ComposableArchitecture
 import Foundation
+import UIKit
 
 /// TCA dependency for MarkPush operations.
 struct MarkPushClient {
@@ -20,8 +21,8 @@ extension MarkPushClient: DependencyKey {
         startReceiving: {
             let deviceID = (try? KeychainManager.loadOrCreateDeviceID()) ?? UUID().uuidString
             let receiver = WiFiReceiver(deviceID: deviceID)
-            try? await receiver.start()
-            return await receiver.messages
+            try? await receiver.start() // actor-isolated throwing call
+            return receiver.messages
         },
         stopReceiving: {
             // Managed by receiver lifecycle
@@ -64,9 +65,10 @@ extension MarkPushClient: DependencyKey {
             request.httpMethod = "POST"
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
+            let deviceName = await UIDevice.current.name
             let body = [
                 "device_id": deviceID,
-                "device_name": UIDevice.current.name,
+                "device_name": deviceName,
             ]
             request.httpBody = try JSONEncoder().encode(body)
 

@@ -41,8 +41,9 @@ actor CloudReceiver {
                   let message = try? decoder.decode(PushMessage.self, from: data) else { continue }
 
             // Mark as delivered.
+            let deliveredAt = ISO8601DateFormatter().string(from: .now)
             try? await client.from("pushes")
-                .update(["delivered": true, "delivered_at": ISO8601DateFormatter().string(from: .now)])
+                .update(["delivered": "true", "delivered_at": deliveredAt])
                 .eq("id", value: change.record["id"]?.stringValue ?? "")
                 .execute()
 

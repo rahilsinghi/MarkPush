@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>NSCameraUsageDescription</key>
+	<string>MarkPush needs camera access to scan QR codes for device pairing.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>MarkPush uses the local network to receive documents from your computer.</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_markpush._tcp</string>
+	</array>
+</dict>
+</plist>

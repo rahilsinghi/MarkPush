@@ -1,9 +1,11 @@
 import Foundation
-import KeychainAccess
+@preconcurrency import KeychainAccess
 
 /// Manages secure storage of encryption keys and device secrets.
-enum KeychainManager {
-    private static let keychain = Keychain(service: "com.markpush.app")
+enum KeychainManager: Sendable {
+    // nonisolated(unsafe) silences the Sendable warning for KeychainAccess
+    // which doesn't yet conform to Sendable but is safe for our static usage.
+    nonisolated(unsafe) private static let keychain = Keychain(service: "com.markpush.app")
         .accessibility(.afterFirstUnlock)
 
     /// Store the shared encryption key for a paired device.

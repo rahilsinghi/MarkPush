@@ -37,7 +37,7 @@ struct PairingView: View {
 
             Image(systemName: "qrcode.viewfinder")
                 .font(.system(size: 80))
-                .foregroundStyle(.accent)
+                .foregroundStyle(.tint)
                 .accessibilityHidden(true)
 
             VStack(spacing: 12) {
