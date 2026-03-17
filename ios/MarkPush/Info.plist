@@ -31,6 +31,14 @@
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
 	</array>
+	<key>UIAppFonts</key>
+	<array>
+		<string>Fraunces-Variable.ttf</string>
+		<string>PlayfairDisplay-Variable.ttf</string>
+		<string>Lora-Variable.ttf</string>
+		<string>Inter-Variable.ttf</string>
+		<string>JetBrainsMono-Variable.ttf</string>
+	</array>
 	<key>NSCameraUsageDescription</key>
 	<string>MarkPush needs camera access to scan QR codes for device pairing.</string>
 	<key>NSLocalNetworkUsageDescription</key>

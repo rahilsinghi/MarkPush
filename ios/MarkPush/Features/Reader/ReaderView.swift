@@ -7,58 +7,134 @@ struct ReaderView: View {
     @Environment(\.colorScheme) var colorScheme
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                // Document header
-                VStack(alignment: .leading, spacing: 8) {
-                    if let source = store.source {
-                        SourceBadge(source: source)
-                    }
-                    Text(store.title)
-                        .font(.system(.largeTitle, design: .serif, weight: .bold))
+        VStack(spacing: 0) {
+            // Reading progress bar
+            ReadingProgressBar(progress: store.scrollProgress)
 
-                    HStack(spacing: 12) {
-                        Label("\(max(1, store.wordCount / 200)) min read", systemImage: "clock")
-                        Label("\(store.wordCount) words", systemImage: "text.word.spacing")
-                    }
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    // Document header
+                    VStack(alignment: .leading, spacing: MPSpacing.sm) {
+                        if let source = store.source {
+                            SourceBadge(source: source)
+                        }
 
-                    if !store.tags.isEmpty {
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack {
-                                ForEach(store.tags, id: \.self) { tag in
-                                    TagPill(tag: tag)
+                        Text(store.title)
+                            .font(MPFont.readerH1)
+                            .foregroundStyle(Color.mpTextPrimary)
+                            .padding(.top, MPSpacing.xs)
+
+                        HStack(spacing: MPSpacing.md) {
+                            Label("\(max(1, store.wordCount / 200)) min read", systemImage: "clock")
+                            Text("·")
+                            Label("\(store.wordCount) words", systemImage: "text.word.spacing")
+                        }
+                        .font(MPFont.metadata)
+                        .foregroundStyle(Color.mpTextTertiary)
+
+                        if !store.tags.isEmpty {
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: MPSpacing.xs) {
+                                    ForEach(store.tags, id: \.self) { tag in
+                                        TagPill(tag: tag)
+                                    }
                                 }
                             }
                         }
                     }
+                    .padding(.horizontal, MPSpacing.screenPadding)
+                    .padding(.top, MPSpacing.xl)
+                    .padding(.bottom, MPSpacing.lg)
+
+                    Divider()
+                        .padding(.horizontal, MPSpacing.screenPadding)
+
+                    // Markdown content
+                    Markdown(store.content)
+                        .markdownTheme(markpushTheme)
+                        .padding(.horizontal, MPSpacing.screenPadding)
+                        .padding(.top, MPSpacing.lg)
+                        .padding(.bottom, 80)
+                        .textSelection(.enabled)
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 20)
-                .padding(.bottom, 16)
-
-                Divider()
-                    .padding(.horizontal, 20)
-
-                // Markdown content
-                Markdown(store.content)
-                    .markdownTheme(.docC)
-                    .padding(.horizontal, 20)
-                    .padding(.top, 16)
-                    .padding(.bottom, 60)
-                    .textSelection(.enabled)
             }
+            .scrollIndicators(.hidden)
         }
-        .scrollIndicators(.hidden)
+        .background(Color.mpBackground)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { readerToolbar }
+    }
+
+    /// Custom MarkdownUI theme matching the MarkPush design palette.
+    private var markpushTheme: MarkdownUI.Theme {
+        .docC.text {
+            ForegroundColor(Color.mpTextPrimary)
+            FontSize(17)
+        }
+        .heading1 { configuration in
+            configuration.label
+                .markdownMargin(top: 24, bottom: 8)
+                .markdownTextStyle {
+                    FontSize(26)
+                    FontWeight(.bold)
+                    ForegroundColor(Color.mpTextPrimary)
+                }
+        }
+        .heading2 { configuration in
+            configuration.label
+                .markdownMargin(top: 20, bottom: 6)
+                .markdownTextStyle {
+                    FontSize(22)
+                    FontWeight(.bold)
+                    ForegroundColor(Color.mpTextPrimary)
+                }
+        }
+        .heading3 { configuration in
+            configuration.label
+                .markdownMargin(top: 16, bottom: 4)
+                .markdownTextStyle {
+                    FontSize(18)
+                    FontWeight(.semibold)
+                    ForegroundColor(Color.mpTextPrimary)
+                }
+        }
+        .codeBlock { configuration in
+            configuration.label
+                .markdownTextStyle {
+                    FontFamilyVariant(.monospaced)
+                    FontSize(13.5)
+                    ForegroundColor(Color(hex: 0xF0EFF4))
+                }
+                .padding(MPSpacing.md)
+                .background(Color.mpCodeBackground)
+                .clipShape(RoundedRectangle(cornerRadius: MPSpacing.badgeRadius))
+                .markdownMargin(top: 8, bottom: 8)
+        }
+        .code {
+            FontFamilyVariant(.monospaced)
+            FontSize(14)
+            ForegroundColor(Color.mpAccentSecondary)
+            BackgroundColor(Color.mpCodeBackground.opacity(0.15))
+        }
+        .link {
+            ForegroundColor(Color.mpAccent)
+        }
+        .blockquote { configuration in
+            configuration.label
+                .padding(.leading, MPSpacing.md)
+                .overlay(alignment: .leading) {
+                    Rectangle()
+                        .fill(Color.mpAccent.opacity(0.4))
+                        .frame(width: 3)
+                }
+                .markdownMargin(top: 8, bottom: 8)
+        }
     }
 
     @ToolbarContentBuilder
     private var readerToolbar: some ToolbarContent {
         ToolbarItem(placement: .navigationBarTrailing) {
-            HStack(spacing: 16) {
+            HStack(spacing: MPSpacing.lg) {
                 Button { store.send(.toggleTOC) } label: {
                     Image(systemName: "list.bullet")
                 }

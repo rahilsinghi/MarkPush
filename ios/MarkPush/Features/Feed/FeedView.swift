@@ -5,15 +5,22 @@ struct FeedView: View {
     @Bindable var store: StoreOf<FeedFeature>
 
     var body: some View {
-        Group {
+        ZStack {
+            Color.mpBackground.ignoresSafeArea()
+
             if store.documents.isEmpty {
                 emptyState
             } else {
                 documentList
             }
         }
-        .navigationTitle("MarkPush")
+        .navigationTitle("")
         .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Text("MarkPush")
+                    .font(MPFont.appTitle)
+                    .foregroundStyle(Color.mpTextPrimary)
+            }
             ToolbarItem(placement: .navigationBarTrailing) {
                 ConnectionBadge(isConnected: store.isConnected)
             }
@@ -22,37 +29,58 @@ struct FeedView: View {
     }
 
     private var emptyState: some View {
-        ContentUnavailableView {
-            Label("No Documents Yet", systemImage: "doc.text")
-        } description: {
-            Text("Push your first document from the terminal:")
-            Text("markpush push README.md")
-                .font(.system(.body, design: .monospaced))
-                .padding(.top, 4)
+        VStack(spacing: MPSpacing.lg) {
+            Spacer()
+
+            Image(systemName: "doc.text")
+                .font(.system(size: 48))
+                .foregroundStyle(Color.mpTextTertiary)
+
+            VStack(spacing: MPSpacing.sm) {
+                Text("No Documents Yet")
+                    .font(MPFont.cardTitle)
+                    .foregroundStyle(Color.mpTextPrimary)
+
+                Text("Push your first document from the terminal:")
+                    .font(MPFont.body)
+                    .foregroundStyle(Color.mpTextSecondary)
+
+                Text("markpush push README.md")
+                    .font(MPFont.code)
+                    .foregroundStyle(Color.mpAccent)
+                    .padding(.horizontal, MPSpacing.lg)
+                    .padding(.vertical, MPSpacing.sm)
+                    .background(Color.mpCodeBackground.opacity(0.1), in: RoundedRectangle(cornerRadius: MPSpacing.badgeRadius))
+                    .padding(.top, MPSpacing.xs)
+            }
+
+            Spacer()
         }
     }
 
     private var documentList: some View {
-        List {
-            ForEach(store.documents) { doc in
-                DocCard(document: doc)
-                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                        Button("Archive", role: .destructive) {
-                            store.send(.archiveDocument(doc.id))
+        ScrollView {
+            LazyVStack(spacing: MPSpacing.md) {
+                ForEach(store.documents) { doc in
+                    DocCard(document: doc)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            store.send(.markAsRead(doc.id))
                         }
-                    }
-                    .swipeActions(edge: .leading) {
-                        Button(doc.isPinned ? "Unpin" : "Pin") {
-                            store.send(.togglePin(doc.id))
+                        .contextMenu {
+                            Button(doc.isPinned ? "Unpin" : "Pin") {
+                                store.send(.togglePin(doc.id))
+                            }
+                            Button("Archive", role: .destructive) {
+                                store.send(.archiveDocument(doc.id))
+                            }
                         }
-                        .tint(.orange)
-                    }
-                    .onTapGesture {
-                        store.send(.markAsRead(doc.id))
-                    }
+                }
             }
+            .padding(.horizontal, MPSpacing.screenPadding)
+            .padding(.top, MPSpacing.sm)
         }
-        .listStyle(.plain)
+        .scrollIndicators(.hidden)
     }
 }
 
@@ -62,14 +90,17 @@ struct ConnectionBadge: View {
     let isConnected: Bool
 
     var body: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: MPSpacing.xs) {
             Circle()
-                .fill(isConnected ? Color.green : Color.red)
+                .fill(isConnected ? Color.mpConnected : Color.mpDisconnected)
                 .frame(width: 8, height: 8)
             Text(isConnected ? "Connected" : "Disconnected")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                .font(MPFont.metadata)
+                .foregroundStyle(Color.mpTextSecondary)
         }
+        .padding(.horizontal, MPSpacing.sm)
+        .padding(.vertical, MPSpacing.xs)
+        .background(Color.mpSurface, in: Capsule())
         .accessibilityLabel(isConnected ? "Connected" : "Disconnected")
     }
 }

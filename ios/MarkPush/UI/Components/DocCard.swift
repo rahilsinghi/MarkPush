@@ -1,56 +1,88 @@
 import SwiftUI
 
+/// Document card with three visual variants: unread, read, pinned.
+/// Matches the MarkPush design system palette.
 struct DocCard: View {
     let document: FeedFeature.DocumentState
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                if let source = document.source {
-                    SourceBadge(source: source)
+        HStack(spacing: 0) {
+            // Unread accent bar
+            if !document.isRead {
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(Color.mpAccent)
+                    .frame(width: 3)
+                    .padding(.vertical, MPSpacing.sm)
+            }
+
+            VStack(alignment: .leading, spacing: MPSpacing.sm) {
+                // Top row: source badge + time
+                HStack {
+                    if let source = document.source {
+                        SourceBadge(source: source)
+                    }
+                    Spacer()
+                    if document.isPinned {
+                        Image(systemName: "star.fill")
+                            .font(.system(size: 12))
+                            .foregroundStyle(Color.orange)
+                            .accessibilityLabel("Pinned")
+                    }
+                    Text(document.receivedAt, style: .relative)
+                        .font(MPFont.metadata)
+                        .foregroundStyle(Color.mpTextTertiary)
                 }
-                Spacer()
-                Text(document.receivedAt, style: .relative)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
 
-            Text(document.title)
-                .font(.headline)
-                .lineLimit(2)
+                // Title
+                Text(document.title)
+                    .font(MPFont.cardTitle)
+                    .foregroundStyle(Color.mpTextPrimary)
+                    .lineLimit(2)
+                    .fontWeight(document.isRead ? .regular : .semibold)
 
-            if !document.excerpt.isEmpty {
-                Text(document.excerpt)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(3)
-            }
+                // Excerpt
+                if !document.excerpt.isEmpty {
+                    Text(document.excerpt)
+                        .font(MPFont.excerpt)
+                        .foregroundStyle(Color.mpTextSecondary)
+                        .lineLimit(2)
+                }
 
-            HStack(spacing: 12) {
-                Label("\(document.readingTimeMinutes) min read", systemImage: "clock")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                // Bottom row: reading time + word count + tags
+                HStack(spacing: MPSpacing.md) {
+                    HStack(spacing: MPSpacing.xs) {
+                        Image(systemName: "clock")
+                            .font(.system(size: 11))
+                        Text("\(document.readingTimeMinutes) min")
+                    }
+                    .font(MPFont.metadata)
+                    .foregroundStyle(Color.mpTextTertiary)
 
-                if !document.tags.isEmpty {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 4) {
-                            ForEach(document.tags, id: \.self) { tag in
-                                TagPill(tag: tag)
+                    Text("·")
+                        .foregroundStyle(Color.mpTextTertiary)
+
+                    Text("\(document.wordCount) words")
+                        .font(MPFont.metadata)
+                        .foregroundStyle(Color.mpTextTertiary)
+
+                    if !document.tags.isEmpty {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: MPSpacing.xs) {
+                                ForEach(document.tags, id: \.self) { tag in
+                                    TagPill(tag: tag)
+                                }
                             }
                         }
                     }
                 }
             }
+            .padding(.leading, document.isRead ? MPSpacing.cardPadding : MPSpacing.md)
+            .padding(.trailing, MPSpacing.cardPadding)
+            .padding(.vertical, MPSpacing.md)
         }
-        .padding(.vertical, 8)
-        .overlay(alignment: .leading) {
-            if !document.isRead {
-                Circle()
-                    .fill(.blue)
-                    .frame(width: 8, height: 8)
-                    .offset(x: -16)
-            }
-        }
+        .background(Color.mpSurface)
+        .clipShape(RoundedRectangle(cornerRadius: MPSpacing.cardRadius))
+        .shadow(color: .black.opacity(0.04), radius: 4, y: 2)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(document.title), \(document.readingTimeMinutes) minute read, \(document.isRead ? "read" : "unread")")
     }
@@ -63,21 +95,30 @@ struct SourceBadge: View {
 
     var body: some View {
         Text(source)
-            .font(.caption2.bold())
+            .font(MPFont.badge)
             .textCase(.uppercase)
-            .padding(.horizontal, 6)
-            .padding(.vertical, 2)
-            .background(badgeColor.opacity(0.15), in: Capsule())
-            .foregroundStyle(badgeColor)
+            .tracking(0.5)
+            .padding(.horizontal, MPSpacing.sm)
+            .padding(.vertical, 3)
+            .foregroundStyle(badgeTextColor)
+            .background(badgeBgColor, in: Capsule())
             .accessibilityLabel("Source: \(source)")
     }
 
-    private var badgeColor: Color {
+    private var badgeTextColor: Color {
         switch source.lowercased() {
-        case "claude": .purple
-        case "cursor": .blue
-        case "windsurf": .teal
-        default: .gray
+        case "claude": .mpSourceClaude
+        case "cursor": .mpSourceCursor
+        case "claude code": .mpSourceClaudeCode
+        default: .mpSourceManual
+        }
+    }
+
+    private var badgeBgColor: Color {
+        switch source.lowercased() {
+        case "claude": .mpSourceClaudeBg
+        case "cursor": .mpSourceCursorBg
+        default: .mpSourceManualBg
         }
     }
 }
@@ -88,11 +129,12 @@ struct TagPill: View {
     let tag: String
 
     var body: some View {
-        Text(tag)
-            .font(.caption2)
-            .padding(.horizontal, 8)
+        Text("#\(tag)")
+            .font(MPFont.tagPill)
+            .foregroundStyle(Color.mpTagText)
+            .padding(.horizontal, MPSpacing.sm)
             .padding(.vertical, 3)
-            .background(.fill.tertiary, in: Capsule())
+            .background(Color.mpTagBackground, in: Capsule())
             .accessibilityLabel("Tag: \(tag)")
     }
 }
