@@ -46,6 +46,10 @@ ios/Package.resolved
 *.pem
 *.key
 
+# MCP Server (TypeScript)
+mcp/node_modules/
+mcp/dist/
+
 # OS
 .DS_Store
 .DS_Store?
