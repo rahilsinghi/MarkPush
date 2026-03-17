@@ -65,9 +65,10 @@ markpush/
 │       ├── Clients/  ← TCA dependencies
 │       ├── Transport/← WiFi + Cloud receivers
 │       └── UI/       ← Theme, components, assets
-├── mcp/              ← TypeScript MCP server (planned)
+├── mcp/              ← TypeScript MCP server (@markpush/mcp-server)
 │   └── src/          ← tools/, prompts/, transport/, crypto/
 ├── relay/            ← Self-hostable Supabase cloud relay
+├── design/           ← App icon, logo, UI palette, mockups, onboarding
 ├── docs/             ← Architecture, API contracts, protocols
 └── scripts/          ← Install, dev-setup, release
 ```
@@ -81,17 +82,47 @@ go test ./... -race
 ```
 
 ### iOS
-Open `ios/MarkPush.xcodeproj` in Xcode 16+
-Select a simulator or device and run.
+```bash
+# Generate project (after modifying project.yml)
+cd ios && xcodegen generate
+
+# Open in Xcode
+open -a Xcode ios/MarkPush.xcodeproj
+
+# Or build from CLI
+xcodebuild build -project ios/MarkPush.xcodeproj -scheme MarkPush \
+  -destination 'platform=iOS Simulator,name=iPhone 16e'
+```
+
+### MCP Server
+```bash
+cd mcp && npm test     # run tests
+cd mcp && npm run dev  # run locally
+```
+
+## Xcode Setup Notes (IMPORTANT — learned from experience)
+- **xcodegen** generates .xcodeproj from `ios/project.yml` — run `cd ios && xcodegen generate` after changes
+- **SPM product names** must be explicit in project.yml: `package: swift-composable-architecture, product: ComposableArchitecture`
+- **Swift concurrency**: set `SWIFT_STRICT_CONCURRENCY: targeted` (not `complete`) — KeychainAccess and other deps don't support strict Sendable
+- **KeychainAccess**: use `@preconcurrency import KeychainAccess` and `nonisolated(unsafe)` for static properties
+- **UIDevice.current.name** is `@MainActor` in iOS 26 — must use `await`
+- **Info.plist MUST include** CFBundleIdentifier, CFBundleExecutable, etc. or simulator fails with "Missing bundle ID"
+- **No multicast entitlement** with free Personal Team — remove from entitlements
+- **No App Sandbox** entitlement on iOS (macOS only)
+- **ModelContainer** init should be explicit `try` in App init, not inline `.modelContainer(for:)`
+- **TCA sheet bindings**: use `Binding(get:set:)` pattern, not `$store.property` for non-@BindingState properties
+- **`.accent` is not a ShapeStyle** — use `.tint` instead
+- After cleaning DerivedData, must re-resolve packages: `File → Packages → Resolve Package Versions`
 
 ## Current Status
 Phase 1: CLI Tool ✅
 Phase 2: WiFi Transport ✅
-Phase 3: iOS App ✅ (source complete, needs Xcode project setup)
+Phase 3: iOS App ✅ (running on simulator)
 Phase 4: Cloud Relay ✅
-Phase 5: Power Features ✅ (watch mode, library)
+Phase 5: Power Features ✅
 Phase 6: OSS Packaging ✅
-**Next: MCP Server** — see `docs/mcp-server-plan.md`
+MCP Server ✅ (6 tools, 4 prompts, 32 tests passing)
+**Next:** Apply design system from `design/` folder, npm publish MCP, end-to-end testing
 
 ## Key Docs
 - `docs/system-architecture.md` — Full system diagrams
