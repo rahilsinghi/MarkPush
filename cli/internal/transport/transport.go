@@ -7,8 +7,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"time"
 
 	"github.com/charmbracelet/lipgloss"
+	"github.com/rahilsinghi/markpush/cli/internal/mdns"
 	"github.com/rahilsinghi/markpush/cli/internal/protocol"
 )
 
@@ -17,22 +19,8 @@ type Transport interface {
 	Send(ctx context.Context, msg *protocol.PushMessage) error
 }
 
-// WiFiTransport sends messages over local WiFi via WebSocket.
-// Not implemented in Phase 1.
-type WiFiTransport struct{}
-
-// NewWiFiTransport creates a new WiFi transport.
-func NewWiFiTransport() *WiFiTransport {
-	return &WiFiTransport{}
-}
-
-// Send is not yet implemented for WiFi transport.
-func (t *WiFiTransport) Send(_ context.Context, _ *protocol.PushMessage) error {
-	return fmt.Errorf("wifi transport: not implemented (Phase 2)")
-}
-
 // CloudTransport sends messages via the Supabase cloud relay.
-// Not implemented in Phase 1.
+// Not implemented yet.
 type CloudTransport struct{}
 
 // NewCloudTransport creates a new cloud transport.
@@ -73,17 +61,33 @@ func (t *DryRunTransport) Send(_ context.Context, msg *protocol.PushMessage) err
 
 // Select returns the appropriate transport based on the given mode.
 // Valid modes: "dry-run", "wifi", "cloud", "auto".
+// In "auto" mode, it tries WiFi discovery first and falls back to cloud.
 func Select(mode string) (Transport, error) {
 	switch mode {
 	case "dry-run":
 		return NewDryRunTransport(nil), nil
 	case "wifi":
-		return NewWiFiTransport(), nil
+		return NewWiFiSender(), nil
 	case "cloud":
 		return NewCloudTransport(), nil
 	case "auto":
-		return nil, fmt.Errorf("auto transport: WiFi and cloud not yet implemented, use --dry-run")
+		return selectAuto()
 	default:
 		return nil, fmt.Errorf("unknown transport mode: %q", mode)
 	}
+}
+
+// selectAuto tries mDNS discovery for 2 seconds. If a device is found,
+// uses WiFi. Otherwise falls back to cloud.
+func selectAuto() (Transport, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	dev, err := mdns.Discover(ctx, 2*time.Second)
+	if err == nil && dev != nil {
+		return NewWiFiSenderWithDevice(dev), nil
+	}
+
+	// Fallback to cloud.
+	return NewCloudTransport(), nil
 }

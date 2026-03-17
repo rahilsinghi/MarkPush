@@ -59,8 +59,8 @@ func TestSelect_WiFi(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Select: %v", err)
 	}
-	if _, ok := tr.(*WiFiTransport); !ok {
-		t.Errorf("expected *WiFiTransport, got %T", tr)
+	if _, ok := tr.(*WiFiSender); !ok {
+		t.Errorf("expected *WiFiSender, got %T", tr)
 	}
 }
 
@@ -75,9 +75,14 @@ func TestSelect_Cloud(t *testing.T) {
 }
 
 func TestSelect_Auto(t *testing.T) {
-	_, err := Select("auto")
-	if err == nil {
-		t.Error("auto should return error in Phase 1")
+	// Auto falls back to cloud when no device is found.
+	tr, err := Select("auto")
+	if err != nil {
+		t.Fatalf("Select auto: %v", err)
+	}
+	// Should fall back to cloud since no mDNS device is on the network.
+	if _, ok := tr.(*CloudTransport); !ok {
+		t.Errorf("expected *CloudTransport fallback, got %T", tr)
 	}
 }
 
@@ -85,17 +90,6 @@ func TestSelect_Unknown(t *testing.T) {
 	_, err := Select("carrier-pigeon")
 	if err == nil {
 		t.Error("unknown mode should return error")
-	}
-}
-
-func TestWiFiTransport_NotImplemented(t *testing.T) {
-	tr := NewWiFiTransport()
-	err := tr.Send(context.Background(), testMessage())
-	if err == nil {
-		t.Error("WiFi send should return not-implemented error")
-	}
-	if !strings.Contains(err.Error(), "not implemented") {
-		t.Errorf("error = %q, should contain 'not implemented'", err)
 	}
 }
 
