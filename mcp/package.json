@@ -1,6 +1,6 @@
 {
   "name": "@markpush/mcp-server",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "MCP server for pushing AI-generated markdown to iPhone via MarkPush",
   "type": "module",
   "bin": {
@@ -31,14 +31,12 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.27.0",
     "zod": "^3.25.0",
-    "ws": "^8.18.0",
     "multicast-dns": "^7.2.5",
     "qrcode-terminal": "^0.12.0",
     "@iarna/toml": "^2.2.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
-    "@types/ws": "^8.5.0",
     "@types/qrcode-terminal": "^0.12.0",
     "typescript": "^5.7.0",
     "tsx": "^4.0.0",

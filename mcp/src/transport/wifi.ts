@@ -1,12 +1,14 @@
 /**
- * WiFi transport: sends PushMessage over WebSocket to a locally discovered iOS device.
+ * WiFi transport: sends PushMessage over raw TCP to a locally discovered iOS device.
+ * Matches the Go CLI protocol: JSON bytes written directly to TCP socket, no framing.
  */
 
-import WebSocket from "ws";
+import { createConnection, type Socket } from "node:net";
 import type { PushMessage, AckMessage } from "../protocol/messages.js";
 
-const CONNECT_TIMEOUT = 5_000;
+const CONNECT_TIMEOUT = 10_000;
 const WRITE_TIMEOUT = 10_000;
+const ACK_READ_TIMEOUT = 10_000;
 
 export interface DeviceInfo {
   name: string;
@@ -67,54 +69,63 @@ export async function discoverDevice(timeoutMs: number = 2_000): Promise<DeviceI
   });
 }
 
-/** Send a PushMessage over WebSocket to a device. */
+/** Send a PushMessage over raw TCP to a device (matches Go CLI protocol). */
 export async function sendViaWiFi(device: DeviceInfo, msg: PushMessage): Promise<void> {
-  const url = `ws://${device.host}:${device.port}/ws`;
-
   return new Promise<void>((resolve, reject) => {
-    const ws = new WebSocket(url, { handshakeTimeout: CONNECT_TIMEOUT });
+    const socket: Socket = createConnection(
+      { host: device.host, port: device.port, timeout: CONNECT_TIMEOUT },
+      () => {
+        // Connected — write JSON payload directly (no framing, matching Go CLI).
+        const payload = JSON.stringify(msg);
+        socket.write(payload, "utf-8", (err) => {
+          if (err) {
+            socket.destroy();
+            reject(new Error(`WiFi send failed: ${err.message}`));
+            return;
+          }
+        });
+      },
+    );
 
-    const timeout = setTimeout(() => {
-      ws.close();
-      reject(new Error(`WiFi send timed out connecting to ${url}`));
-    }, WRITE_TIMEOUT);
+    // Read ACK (best-effort, matching Go CLI behavior).
+    const chunks: Buffer[] = [];
+    const ackTimer = setTimeout(() => {
+      socket.destroy();
+      resolve(); // No ACK within timeout — message was still sent.
+    }, ACK_READ_TIMEOUT);
 
-    ws.on("open", () => {
-      ws.send(JSON.stringify(msg), (err) => {
-        if (err) {
-          clearTimeout(timeout);
-          ws.close();
-          reject(new Error(`WiFi send failed: ${err.message}`));
-          return;
-        }
-      });
-    });
+    socket.on("data", (data) => {
+      chunks.push(data);
+      clearTimeout(ackTimer);
 
-    ws.on("message", (data) => {
-      clearTimeout(timeout);
-      // Parse ack (best-effort).
       try {
-        const ack: AckMessage = JSON.parse(data.toString());
+        const ack: AckMessage = JSON.parse(Buffer.concat(chunks).toString("utf-8"));
         if (ack.status === "error") {
-          ws.close();
+          socket.destroy();
           reject(new Error(`Device reported error for message ${msg.id}`));
           return;
         }
       } catch {
-        // Ack parsing failure is non-fatal.
+        // Partial data or parse failure — non-fatal.
       }
-      ws.close();
+
+      socket.destroy();
       resolve();
     });
 
-    ws.on("error", (err) => {
-      clearTimeout(timeout);
+    socket.on("timeout", () => {
+      socket.destroy();
+      reject(new Error(`WiFi connection timed out to ${device.host}:${device.port}`));
+    });
+
+    socket.on("error", (err) => {
+      clearTimeout(ackTimer);
       reject(new Error(`WiFi connection error: ${err.message}`));
     });
 
-    ws.on("close", () => {
-      clearTimeout(timeout);
-      resolve(); // If closed without ack, message was still sent.
+    socket.on("close", () => {
+      clearTimeout(ackTimer);
+      resolve(); // If closed without ACK, message was still sent.
     });
   });
 }

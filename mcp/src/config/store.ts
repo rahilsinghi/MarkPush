@@ -16,6 +16,7 @@ export interface Config {
   cloud?: {
     supabase_url?: string;
     supabase_key?: string;
+    user_id?: string;
   };
   devices?: PairedDevice[];
 }

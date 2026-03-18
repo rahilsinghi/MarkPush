@@ -33,6 +33,7 @@ export async function autoSend(cfg: Config, msg: PushMessage): Promise<Transport
         supabaseUrl: cfg.cloud.supabase_url,
         supabaseKey: cfg.cloud.supabase_key,
         receiverId,
+        userId: cfg.cloud.user_id,
       },
       msg,
     );
