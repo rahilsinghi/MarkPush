@@ -31,6 +31,7 @@ CLI / MCP Server → AES-256-GCM encrypt → WiFi or Cloud → iOS App → Decry
 - Config file: `~/.config/markpush/config.toml`
 - Use `cobra` for CLI commands, `viper` for config
 - WiFi transport uses raw TCP (not WebSocket) — NWProtocolWebSocket handshake fails with gorilla/websocket
+- WiFi listener uses `.any` port (OS-assigned) — CLI discovers via mDNS, avoids "Address already in use" on restart
 - Use `hashicorp/mdns` for Bonjour/mDNS (note: can't discover simulator, works on real devices)
 - Cloud transport includes `user_id` for RLS-compliant Supabase Realtime routing
 - Tests: table-driven, 80%+ coverage
@@ -117,6 +118,7 @@ cd mcp && npm run dev  # run locally
 - **`.accent` is not a ShapeStyle** — use `.tint` instead
 - After cleaning DerivedData, must re-resolve packages: `File → Packages → Resolve Package Versions`
 - **Supabase Auth**: set `SupabaseURL` and `SupabaseAnonKey` in `ios/MarkPush/Info.plist` before running
+- **Supabase session warning**: set `emitLocalSessionAsInitialSession: true` in SupabaseClient options to suppress SDK warning
 - **Magic link deep links**: URL scheme `markpush://` registered in Info.plist, handled via `.onOpenURL` in MarkPushApp
 - **SupabaseClient is Sendable** — no need for `nonisolated(unsafe)` wrapper (unlike KeychainAccess)
 - **WiFiReceiver actor lifetime**: must store in `nonisolated(unsafe) var` — local variable gets deallocated after `startReceiving` returns, killing the listener
@@ -128,11 +130,14 @@ cd mcp && npm run dev  # run locally
 - **SharedModelContainer**: singleton `ModelContainer` shared between app views and TCA PersistenceClient
 - **New files after changes**: run `cd ios && xcodegen generate` to include them in the Xcode project
 - **Xcode beta path**: may be at `/Users/rahilsinghi/Downloads/Xcode-beta.app` — use `sudo xcode-select -s` to switch
+- **iOS 26 Liquid Glass**: NavigationStack toolbar gets automatic system buttons (sidebar toggle "..."). Fix: use custom header + `.navigationBarHidden(true)` on root views
+- **Custom font + .fontWeight()**: Don't apply `.fontWeight()` to custom fonts with weight baked into the name (e.g. `Lora-SemiBold`). Swap font faces instead
+- **Portrait-only**: Must set `UIRequiresFullScreen = true` in Info.plist if only supporting portrait orientation
 
 ## Current Status
 Phase 1: CLI Tool ✅
 Phase 2: WiFi Transport ✅
-Phase 3: iOS App ✅ (running on simulator)
+Phase 3: iOS App ✅ (running on simulator + physical device)
 Phase 4: Cloud Relay ✅
 Phase 5: Power Features ✅
 Phase 6: OSS Packaging ✅
@@ -151,7 +156,9 @@ Feed → Reader Navigation ✅ (tap to open, full markdown rendering with code b
 SwiftData Persistence ✅ (PersistenceClient, SharedModelContainer, documents in Library)
 Session Persistence ✅ (30-day re-auth via Keychain + UserDefaults lastAuthDate)
 npm Published ✅ (@markpush/mcp-server@0.1.0, public, MIT)
-**Next:** Test MCP live with Claude, update macOS 26.4 beta → physical device testing, paid Apple Developer → TestFlight, new PRD (dual-mode)
+Physical Device ✅ (iPhone 17 Pro: auth, pairing, cloud push all verified)
+MCP Live ✅ (local source, cloud push to physical device working)
+**Next:** Test WiFi push on device, Feed→Reader→Library flow, MCP templates, paid Apple Developer → TestFlight, new PRD (dual-mode)
 
 ## Key Docs
 - `docs/system-architecture.md` — Full system diagrams
