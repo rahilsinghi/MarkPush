@@ -1,4 +1,5 @@
 import Foundation
+import os
 import Supabase
 
 /// Receives push messages via the Supabase cloud relay.
@@ -7,6 +8,7 @@ actor CloudReceiver {
     private let client: SupabaseClient
     private let userID: String
     private var continuation: AsyncStream<PushMessage>.Continuation?
+    private nonisolated let logger = Logger(subsystem: "com.rahilsinghi.markpush", category: "Cloud")
 
     /// Stream of incoming push messages from the cloud relay.
     nonisolated let messages: AsyncStream<PushMessage>
@@ -35,7 +37,7 @@ actor CloudReceiver {
         )
 
         try await channel.subscribeWithError()
-        print("[Cloud] Subscribed to pushes for user_id: \(userID)")
+        logger.info("Subscribed to pushes for user_id: \(self.userID, privacy: .public)")
 
         for await change in changes {
             guard let payload = change.record["payload"]?.stringValue else { continue }

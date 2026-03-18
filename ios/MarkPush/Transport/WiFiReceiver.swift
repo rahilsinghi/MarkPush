@@ -1,5 +1,6 @@
 import Foundation
 import Network
+import os
 
 /// Receives push messages over local WiFi using Network.framework.
 /// Advertises via Bonjour so the CLI can discover this device.
@@ -8,8 +9,9 @@ actor WiFiReceiver {
     private var listener: NWListener?
     private var connections: [NWConnection] = []
     private let deviceID: String
-    private let port: NWEndpoint.Port = 49152
+    private let port: NWEndpoint.Port = .any
     private var continuation: AsyncStream<PushMessage>.Continuation?
+    private nonisolated let logger = Logger(subsystem: "com.rahilsinghi.markpush", category: "WiFi")
 
     /// Stream of incoming push messages.
     nonisolated let messages: AsyncStream<PushMessage>
@@ -26,32 +28,35 @@ actor WiFiReceiver {
         let parameters = NWParameters.tcp
         parameters.allowLocalEndpointReuse = true
 
-        listener = try NWListener(using: parameters, on: port)
+        let newListener = try NWListener(using: parameters, on: port)
+        self.listener = newListener
 
         // Advertise via Bonjour.
-        listener?.service = NWListener.Service(
+        newListener.service = NWListener.Service(
             name: "MarkPush",
             type: "_markpush._tcp",
             domain: "local",
             txtRecord: NWTXTRecord(["id": deviceID, "v": "1"])
         )
 
-        listener?.stateUpdateHandler = { [weak self] state in
+        let log = logger
+        newListener.stateUpdateHandler = { state in
             switch state {
             case .ready:
-                print("[WiFi] Listening on port \(self?.port.rawValue ?? 0)")
+                let actualPort = newListener.port?.rawValue ?? 0
+                log.info("Listening on port \(actualPort)")
             case .failed(let error):
-                print("[WiFi] Listener failed: \(error)")
+                log.error("Listener failed: \(error)")
             default:
                 break
             }
         }
 
-        listener?.newConnectionHandler = { [weak self] connection in
+        newListener.newConnectionHandler = { [weak self] connection in
             Task { await self?.handleConnection(connection) }
         }
 
-        listener?.start(queue: .global(qos: .userInitiated))
+        newListener.start(queue: .global(qos: .userInitiated))
     }
 
     /// Stop listening and close all connections.
@@ -68,16 +73,17 @@ actor WiFiReceiver {
     private func handleConnection(_ connection: NWConnection) {
         connections.append(connection)
 
+        let log = logger
         // Wait for the connection to be ready before receiving data.
         connection.stateUpdateHandler = { [weak self] state in
             switch state {
             case .ready:
-                print("[WiFi] Connection ready from \(connection.endpoint)")
+                log.info("Connection ready from \(String(describing: connection.endpoint))")
                 Task { await self?.receiveData(on: connection) }
             case .failed(let error):
-                print("[WiFi] Connection failed: \(error)")
+                log.error("Connection failed: \(error)")
             case .cancelled:
-                print("[WiFi] Connection cancelled")
+                log.debug("Connection cancelled")
             default:
                 break
             }
@@ -96,7 +102,7 @@ actor WiFiReceiver {
             }
 
             if let error {
-                print("[WiFi] Receive error: \(error)")
+                self.logger.error("Receive error: \(error)")
                 return
             }
 
@@ -126,10 +132,7 @@ actor WiFiReceiver {
         }
 
         guard let message = try? decoder.decode(PushMessage.self, from: data) else {
-            print("[WiFi] Failed to decode message (\(data.count) bytes)")
-            if let str = String(data: data, encoding: .utf8) {
-                print("[WiFi] Raw data: \(str.prefix(200))")
-            }
+            logger.error("Failed to decode message (\(data.count) bytes)")
             return
         }
 

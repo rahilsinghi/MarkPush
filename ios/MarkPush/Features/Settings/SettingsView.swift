@@ -50,7 +50,11 @@ struct SettingsView: View {
             }
 
             Section("About") {
-                LabeledContent("Version", value: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "dev")
+                LabeledContent("Version", value: {
+                    let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "dev"
+                    let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?"
+                    return "\(version) (\(build))"
+                }())
                 Link("Source Code", destination: URL(string: "https://github.com/rahilsinghi/MarkPush")!)
                 Link("Report Issue", destination: URL(string: "https://github.com/rahilsinghi/MarkPush/issues")!)
             }
