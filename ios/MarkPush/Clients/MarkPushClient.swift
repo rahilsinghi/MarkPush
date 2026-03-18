@@ -16,16 +16,59 @@ struct MarkPushClient {
     var hasPairedDevice: @Sendable () async -> Bool
 }
 
+/// Keeps receivers alive for the duration of the receiving session.
+private nonisolated(unsafe) var activeWiFiReceiver: WiFiReceiver?
+private nonisolated(unsafe) var activeCloudReceiver: CloudReceiver?
+
 extension MarkPushClient: DependencyKey {
     static let liveValue = MarkPushClient(
         startReceiving: {
             let deviceID = (try? KeychainManager.loadOrCreateDeviceID()) ?? UUID().uuidString
-            let receiver = WiFiReceiver(deviceID: deviceID)
-            try? await receiver.start() // actor-isolated throwing call
-            return receiver.messages
+
+            // Start WiFi receiver.
+            let wifiReceiver = WiFiReceiver(deviceID: deviceID)
+            try? await wifiReceiver.start()
+            activeWiFiReceiver = wifiReceiver
+
+            // Start Cloud receiver if user is authenticated.
+            let userID = try? await AuthClient.supabase.auth.session.user.id.uuidString
+            if let userID {
+                let cloudReceiver = CloudReceiver(
+                    client: AuthClient.supabase,
+                    userID: userID
+                )
+                activeCloudReceiver = cloudReceiver
+                // Start cloud in background — don't block WiFi.
+                Task { try? await cloudReceiver.start() }
+            }
+
+            // Merge WiFi and Cloud streams into one.
+            return AsyncStream { continuation in
+                // Forward WiFi messages.
+                Task {
+                    for await msg in wifiReceiver.messages {
+                        continuation.yield(msg)
+                    }
+                }
+                // Forward Cloud messages.
+                if let cloudReceiver = activeCloudReceiver {
+                    Task {
+                        for await msg in cloudReceiver.messages {
+                            continuation.yield(msg)
+                        }
+                    }
+                }
+            }
         },
         stopReceiving: {
-            // Managed by receiver lifecycle
+            if let wifi = activeWiFiReceiver {
+                await wifi.stop()
+                activeWiFiReceiver = nil
+            }
+            if let cloud = activeCloudReceiver {
+                await cloud.stop()
+                activeCloudReceiver = nil
+            }
         },
         decryptContent: { message in
             guard message.encrypted else {

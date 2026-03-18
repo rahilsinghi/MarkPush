@@ -4,77 +4,65 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/http"
-	"net/http/httptest"
+	"net"
 	"strings"
 	"testing"
 
-	"github.com/gorilla/websocket"
 	"github.com/rahilsinghi/markpush/cli/internal/mdns"
 	"github.com/rahilsinghi/markpush/cli/internal/protocol"
 )
 
-var upgrader = websocket.Upgrader{
-	CheckOrigin: func(r *http.Request) bool { return true },
-}
-
-// startTestWSServer starts a WebSocket server that receives a message
-// and sends back an ack.
-func startTestWSServer(t *testing.T, handler func(conn *websocket.Conn)) *httptest.Server {
+// startTestTCPServer starts a TCP server that receives a message and sends back an ack.
+func startTestTCPServer(t *testing.T, handler func(conn net.Conn)) (string, int) {
 	t.Helper()
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		conn, err := upgrader.Upgrade(w, r, nil)
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	t.Cleanup(func() { ln.Close() })
+
+	go func() {
+		conn, err := ln.Accept()
 		if err != nil {
-			t.Errorf("upgrade: %v", err)
 			return
 		}
 		defer conn.Close()
 		handler(conn)
-	}))
-	return srv
-}
+	}()
 
-func parseTestServerAddr(t *testing.T, srv *httptest.Server) (string, int) {
-	t.Helper()
-	addr := srv.Listener.Addr().String()
+	addr := ln.Addr().String()
 	parts := strings.Split(addr, ":")
 	host := parts[0]
 	var port int
-	if _, err := fmt.Sscanf(parts[len(parts)-1], "%d", &port); err != nil {
-		t.Fatalf("parse port: %v", err)
-	}
+	fmt.Sscanf(parts[len(parts)-1], "%d", &port)
 	return host, port
 }
 
 func TestWiFiSender_Send_Success(t *testing.T) {
 	var received protocol.PushMessage
 
-	srv := startTestWSServer(t, func(conn *websocket.Conn) {
-		// Read the push message.
-		_, data, err := conn.ReadMessage()
+	host, port := startTestTCPServer(t, func(conn net.Conn) {
+		buf := make([]byte, 65536)
+		n, err := conn.Read(buf)
 		if err != nil {
 			t.Errorf("read: %v", err)
 			return
 		}
-		if err := json.Unmarshal(data, &received); err != nil {
+		if err := json.Unmarshal(buf[:n], &received); err != nil {
 			t.Errorf("unmarshal: %v", err)
 			return
 		}
 
-		// Send ack.
 		ack := protocol.AckMessage{
 			Version: protocol.ProtocolVersion,
 			Type:    protocol.MessageTypeAck,
 			RefID:   received.ID,
 			Status:  "received",
 		}
-		if err := conn.WriteJSON(ack); err != nil {
-			t.Errorf("write ack: %v", err)
-		}
+		data, _ := json.Marshal(ack)
+		conn.Write(data)
 	})
-	defer srv.Close()
 
-	host, port := parseTestServerAddr(t, srv)
 	dev := &mdns.Device{Host: host, Port: port, Name: "test", ID: "test-id"}
 	sender := NewWiFiSenderWithDevice(dev)
 
@@ -93,18 +81,19 @@ func TestWiFiSender_Send_Success(t *testing.T) {
 }
 
 func TestWiFiSender_Send_ErrorAck(t *testing.T) {
-	srv := startTestWSServer(t, func(conn *websocket.Conn) {
-		_, _, _ = conn.ReadMessage()
+	host, port := startTestTCPServer(t, func(conn net.Conn) {
+		buf := make([]byte, 65536)
+		conn.Read(buf)
+
 		ack := protocol.AckMessage{
 			Version: protocol.ProtocolVersion,
 			Type:    protocol.MessageTypeAck,
 			Status:  "error",
 		}
-		_ = conn.WriteJSON(ack)
+		data, _ := json.Marshal(ack)
+		conn.Write(data)
 	})
-	defer srv.Close()
 
-	host, port := parseTestServerAddr(t, srv)
 	dev := &mdns.Device{Host: host, Port: port}
 	sender := NewWiFiSenderWithDevice(dev)
 
@@ -115,13 +104,12 @@ func TestWiFiSender_Send_ErrorAck(t *testing.T) {
 }
 
 func TestWiFiSender_Send_NoAck(t *testing.T) {
-	srv := startTestWSServer(t, func(conn *websocket.Conn) {
-		_, _, _ = conn.ReadMessage()
+	host, port := startTestTCPServer(t, func(conn net.Conn) {
+		buf := make([]byte, 65536)
+		conn.Read(buf)
 		// Close without sending ack.
 	})
-	defer srv.Close()
 
-	host, port := parseTestServerAddr(t, srv)
 	dev := &mdns.Device{Host: host, Port: port}
 	sender := NewWiFiSenderWithDevice(dev)
 

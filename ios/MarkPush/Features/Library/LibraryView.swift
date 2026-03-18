@@ -12,7 +12,23 @@ struct LibraryView: View {
                 ContentUnavailableView.search(text: store.searchQuery)
             } else {
                 ForEach(filteredDocuments) { doc in
-                    LibraryRow(document: doc)
+                    NavigationLink {
+                        ReaderView(store: Store(
+                            initialState: ReaderFeature.State(
+                                documentID: doc.id,
+                                title: doc.title,
+                                content: doc.content,
+                                wordCount: doc.wordCount,
+                                source: doc.source,
+                                tags: doc.tags
+                            )
+                        ) {
+                            ReaderFeature()
+                        })
+                    } label: {
+                        LibraryRow(document: doc)
+                    }
+                    .buttonStyle(.plain)
                 }
             }
         }

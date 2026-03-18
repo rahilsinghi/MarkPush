@@ -8,11 +8,13 @@ struct FeedFeature {
         var documents: IdentifiedArrayOf<DocumentState> = []
         var isConnected: Bool = false
         var isReceiving: Bool = false
+        @Presents var reader: ReaderFeature.State?
     }
 
     struct DocumentState: Equatable, Identifiable {
         let id: UUID
         let title: String
+        let content: String
         let excerpt: String
         let source: String?
         let wordCount: Int
@@ -28,13 +30,16 @@ struct FeedFeature {
         case messageReceived(PushMessage)
         case documentDecrypted(DocumentState)
         case decryptionFailed(String)
+        case documentTapped(UUID)
         case togglePin(UUID)
         case archiveDocument(UUID)
         case markAsRead(UUID)
         case stopReceiving
+        case reader(PresentationAction<ReaderFeature.Action>)
     }
 
     @Dependency(\.markPushClient) var client
+    @Dependency(\.persistenceClient) var persistence
 
     var body: some ReducerOf<Self> {
         Reduce { state, action in
@@ -56,6 +61,7 @@ struct FeedFeature {
                         let doc = DocumentState(
                             id: UUID(uuidString: message.id) ?? UUID(),
                             title: message.title,
+                            content: content,
                             excerpt: extractExcerpt(from: content),
                             source: message.source,
                             wordCount: message.wordCount,
@@ -73,9 +79,28 @@ struct FeedFeature {
 
             case .documentDecrypted(let doc):
                 state.documents.insert(doc, at: 0)
-                return .none
+                // Persist to SwiftData for the Library.
+                return .run { _ in
+                    try? await persistence.saveDocument(
+                        doc.id, doc.title, doc.content, doc.source,
+                        doc.tags, doc.wordCount, "", doc.receivedAt
+                    )
+                }
 
             case .decryptionFailed:
+                return .none
+
+            case .documentTapped(let id):
+                guard let doc = state.documents[id: id] else { return .none }
+                state.documents[id: id]?.isRead = true
+                state.reader = ReaderFeature.State(
+                    documentID: doc.id,
+                    title: doc.title,
+                    content: doc.content,
+                    wordCount: doc.wordCount,
+                    source: doc.source,
+                    tags: doc.tags
+                )
                 return .none
 
             case .togglePin(let id):
@@ -96,7 +121,13 @@ struct FeedFeature {
                 return .run { _ in
                     await client.stopReceiving()
                 }
+
+            case .reader:
+                return .none
             }
+        }
+        .ifLet(\.$reader, action: \.reader) {
+            ReaderFeature()
         }
     }
 }

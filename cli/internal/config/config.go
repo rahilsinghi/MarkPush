@@ -32,6 +32,7 @@ type Config struct {
 type CloudConfig struct {
 	SupabaseURL string `toml:"supabase_url"`
 	SupabaseKey string `toml:"supabase_key"`
+	UserID      string `toml:"user_id"` // Supabase UUID of the target user
 }
 
 // PairedDevice represents a paired iOS device.

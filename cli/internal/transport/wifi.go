@@ -4,9 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net"
 	"time"
 
-	"github.com/gorilla/websocket"
 	"github.com/rahilsinghi/markpush/cli/internal/mdns"
 	"github.com/rahilsinghi/markpush/cli/internal/protocol"
 )
@@ -14,13 +14,13 @@ import (
 const (
 	// DefaultDiscoveryTimeout is the time to wait for mDNS discovery.
 	DefaultDiscoveryTimeout = 2 * time.Second
-	// WriteTimeout is the WebSocket write deadline.
+	// WriteTimeout is the TCP write deadline.
 	WriteTimeout = 10 * time.Second
 )
 
-// WiFiSender sends messages over local WiFi via WebSocket.
+// WiFiSender sends messages over local WiFi via raw TCP.
 // It discovers the iOS app on the network using mDNS, then connects
-// via WebSocket to push the message.
+// via TCP to push the message as JSON.
 type WiFiSender struct {
 	DiscoveryTimeout time.Duration
 	// device can be pre-set to skip discovery (used by auto-select).
@@ -42,8 +42,8 @@ func NewWiFiSenderWithDevice(dev *mdns.Device) *WiFiSender {
 	}
 }
 
-// Send discovers the iOS device (if not already known), connects via WebSocket,
-// sends the push message, and waits for an acknowledgment.
+// Send discovers the iOS device (if not already known), connects via TCP,
+// sends the push message as JSON, and waits for an acknowledgment.
 func (t *WiFiSender) Send(ctx context.Context, msg *protocol.PushMessage) error {
 	dev := t.device
 	if dev == nil {
@@ -54,10 +54,11 @@ func (t *WiFiSender) Send(ctx context.Context, msg *protocol.PushMessage) error 
 		}
 	}
 
-	url := fmt.Sprintf("ws://%s:%d/ws", dev.Host, dev.Port)
-	conn, _, err := websocket.DefaultDialer.DialContext(ctx, url, nil)
+	addr := fmt.Sprintf("%s:%d", dev.Host, dev.Port)
+	dialer := net.Dialer{Timeout: WriteTimeout}
+	conn, err := dialer.DialContext(ctx, "tcp", addr)
 	if err != nil {
-		return fmt.Errorf("wifi send: connect to %s: %w", url, err)
+		return fmt.Errorf("wifi send: connect to %s: %w", addr, err)
 	}
 	defer conn.Close()
 
@@ -65,7 +66,12 @@ func (t *WiFiSender) Send(ctx context.Context, msg *protocol.PushMessage) error 
 		return fmt.Errorf("wifi send: set deadline: %w", err)
 	}
 
-	if err := conn.WriteJSON(msg); err != nil {
+	payload, err := json.Marshal(msg)
+	if err != nil {
+		return fmt.Errorf("wifi send: marshal message: %w", err)
+	}
+
+	if _, err := conn.Write(payload); err != nil {
 		return fmt.Errorf("wifi send: write message: %w", err)
 	}
 
@@ -74,14 +80,15 @@ func (t *WiFiSender) Send(ctx context.Context, msg *protocol.PushMessage) error 
 		return fmt.Errorf("wifi send: set read deadline: %w", err)
 	}
 
-	_, ackData, err := conn.ReadMessage()
+	buf := make([]byte, 4096)
+	n, err := conn.Read(buf)
 	if err != nil {
 		// Not fatal — message was sent, ack is best-effort.
 		return nil
 	}
 
 	var ack protocol.AckMessage
-	if err := json.Unmarshal(ackData, &ack); err != nil {
+	if err := json.Unmarshal(buf[:n], &ack); err != nil {
 		return nil // ack parsing failure is non-fatal
 	}
 

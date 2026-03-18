@@ -98,6 +98,7 @@ func runPush(cmd *cobra.Command, args []string) error {
 		transportOpts := transport.Options{
 			SupabaseURL: cfg.Cloud.SupabaseURL,
 			SupabaseKey: cfg.Cloud.SupabaseKey,
+			UserID:      cfg.Cloud.UserID,
 		}
 		// Use first paired device as receiver.
 		if len(cfg.Devices) > 0 {

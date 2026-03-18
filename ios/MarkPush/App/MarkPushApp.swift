@@ -8,20 +8,10 @@ struct MarkPushApp: App {
         AppFeature()
     }
 
-    let container: ModelContainer
-
-    init() {
-        do {
-            container = try ModelContainer(for: MarkDocument.self, Device.self, Annotation.self)
-        } catch {
-            fatalError("Failed to initialize SwiftData: \(error)")
-        }
-    }
-
     var body: some Scene {
         WindowGroup {
             AppView(store: Self.store)
-                .modelContainer(container)
+                .modelContainer(SharedModelContainer.shared)
                 .onOpenURL { url in
                     Self.store.send(.handleDeepLink(url))
                 }

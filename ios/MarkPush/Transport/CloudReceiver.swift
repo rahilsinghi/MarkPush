@@ -2,40 +2,60 @@ import Foundation
 import Supabase
 
 /// Receives push messages via the Supabase cloud relay.
+/// Uses the authenticated SupabaseClient to subscribe to Realtime changes.
 actor CloudReceiver {
     private let client: SupabaseClient
-    private let deviceID: String
+    private let userID: String
     private var continuation: AsyncStream<PushMessage>.Continuation?
 
     /// Stream of incoming push messages from the cloud relay.
-    let messages: AsyncStream<PushMessage>
+    nonisolated let messages: AsyncStream<PushMessage>
 
-    init(supabaseURL: URL, supabaseKey: String, deviceID: String) {
-        self.client = SupabaseClient(supabaseURL: supabaseURL, supabaseKey: supabaseKey)
-        self.deviceID = deviceID
+    /// Create a CloudReceiver using the authenticated Supabase client.
+    /// - Parameters:
+    ///   - client: The shared SupabaseClient (must have an active auth session).
+    ///   - userID: The authenticated user's Supabase UUID.
+    init(client: SupabaseClient, userID: String) {
+        self.client = client
+        self.userID = userID
         var cont: AsyncStream<PushMessage>.Continuation?
         self.messages = AsyncStream { cont = $0 }
         self.continuation = cont
     }
 
-    /// Subscribe to realtime changes on the pushes table.
+    /// Subscribe to realtime changes on the pushes table for this user.
     func start() async throws {
-        let channel = client.realtimeV2.channel("pushes:\(deviceID)")
+        let channel = client.realtimeV2.channel("pushes:\(userID)")
 
         let changes = await channel.postgresChange(
             InsertAction.self,
             schema: "public",
             table: "pushes",
-            filter: .eq("receiver_id", value: deviceID)
+            filter: .eq("user_id", value: userID)
         )
 
         try await channel.subscribeWithError()
+        print("[Cloud] Subscribed to pushes for user_id: \(userID)")
 
         for await change in changes {
             guard let payload = change.record["payload"]?.stringValue else { continue }
 
             let decoder = JSONDecoder()
-            decoder.dateDecodingStrategy = .iso8601
+            // Handle Go's RFC3339Nano timestamps with fractional seconds.
+            decoder.dateDecodingStrategy = .custom { decoder in
+                let container = try decoder.singleValueContainer()
+                let str = try container.decode(String.self)
+
+                let fmt = ISO8601DateFormatter()
+                fmt.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+                if let date = fmt.date(from: str) { return date }
+
+                fmt.formatOptions = [.withInternetDateTime]
+                if let date = fmt.date(from: str) { return date }
+
+                throw DecodingError.dataCorruptedError(
+                    in: container, debugDescription: "Invalid date: \(str)")
+            }
 
             guard let data = payload.data(using: .utf8),
                   let message = try? decoder.decode(PushMessage.self, from: data) else { continue }

@@ -11,6 +11,7 @@ struct FeedFeatureTests {
         let docState = FeedFeature.DocumentState(
             id: UUID(),
             title: "Test",
+            content: "# Test\nTest excerpt",
             excerpt: "Test excerpt",
             source: "claude",
             wordCount: 100,
@@ -41,6 +42,7 @@ struct FeedFeatureTests {
         let docState = FeedFeature.DocumentState(
             id: UUID(),
             title: "Test",
+            content: "# Test",
             excerpt: "",
             source: nil,
             wordCount: 50,
@@ -67,6 +69,7 @@ struct FeedFeatureTests {
         let docState = FeedFeature.DocumentState(
             id: UUID(),
             title: "Test",
+            content: "# Test",
             excerpt: "",
             source: nil,
             wordCount: 50,

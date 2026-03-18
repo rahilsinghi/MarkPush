@@ -129,9 +129,11 @@ Design System ✅ (custom fonts, semantic colors, typography, spacing)
 Supabase Auth Backend ✅ (beta_whitelist, profiles, devices, push_tokens, RLS)
 iOS Auth Flow ✅ (AuthClient, AuthFeature, magic link login, deep links, sign out)
 E2E Backend Tests ✅ (33 SQL assertions: schema, RLS dual-path, profiles, devices, whitelist, tokens)
-E2E iOS Tests ✅ (40 TCA tests: Auth 13, Settings 8, App 4, Library 5, Feed 3, Pairing 3, Reader 4)
+E2E iOS Tests ✅ (50 TCA tests: Auth 23, Settings 8, App 4, Library 5, Feed 3, Pairing 3, Reader 4)
 Supabase Live ✅ (migrations applied, rahilsinghi300@gmail.com whitelisted, redirect URLs configured)
-**Next:** Manual testing (magic link flow, QR pairing, push delivery), npm publish MCP, TestFlight beta
+OTP Code Entry ✅ (6-digit code fallback when magic link deep link doesn't work)
+Beta Whitelist Enforcement ✅ (non-whitelisted users signed out after auth, shown beta access screen)
+**Next:** Manual testing (magic link + OTP flow, QR pairing, push delivery), npm publish MCP, TestFlight beta
 
 ## Key Docs
 - `docs/system-architecture.md` — Full system diagrams

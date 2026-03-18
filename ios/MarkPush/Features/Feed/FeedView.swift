@@ -65,7 +65,7 @@ struct FeedView: View {
                     DocCard(document: doc)
                         .contentShape(Rectangle())
                         .onTapGesture {
-                            store.send(.markAsRead(doc.id))
+                            store.send(.documentTapped(doc.id))
                         }
                         .contextMenu {
                             Button(doc.isPinned ? "Unpin" : "Pin") {
@@ -81,6 +81,9 @@ struct FeedView: View {
             .padding(.top, MPSpacing.sm)
         }
         .scrollIndicators(.hidden)
+        .navigationDestination(item: $store.scope(state: \.reader, action: \.reader)) { readerStore in
+            ReaderView(store: readerStore)
+        }
     }
 }
 

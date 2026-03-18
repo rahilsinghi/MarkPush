@@ -30,7 +30,7 @@ func TestCloudSender_Send_Success(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	sender := NewCloudSender(srv.URL, "test-key", "receiver-1")
+	sender := NewCloudSender(srv.URL, "test-key", "receiver-1", "")
 	msg := testMessage()
 
 	err := sender.Send(context.Background(), msg)
@@ -52,7 +52,7 @@ func TestCloudSender_Send_ServerError(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	sender := NewCloudSender(srv.URL, "key", "recv")
+	sender := NewCloudSender(srv.URL, "key", "recv", "")
 	err := sender.Send(context.Background(), testMessage())
 	if err == nil {
 		t.Error("expected error for 500 response")
@@ -60,7 +60,7 @@ func TestCloudSender_Send_ServerError(t *testing.T) {
 }
 
 func TestCloudSender_Send_ConnectionRefused(t *testing.T) {
-	sender := NewCloudSender("http://127.0.0.1:1", "key", "recv")
+	sender := NewCloudSender("http://127.0.0.1:1", "key", "recv", "")
 	err := sender.Send(context.Background(), testMessage())
 	if err == nil {
 		t.Error("expected error for connection refused")

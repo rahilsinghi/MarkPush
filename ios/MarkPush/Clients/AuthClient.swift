@@ -12,6 +12,8 @@ struct AuthSession: Equatable, Sendable {
 struct AuthClient: Sendable {
     /// Send a magic-link OTP email.
     var signInWithOTP: @Sendable (String) async throws -> Void
+    /// Verify a 6-digit OTP code from the email.
+    var verifyOTP: @Sendable (_ email: String, _ token: String) async throws -> Void
     /// Exchange the deep-link callback URL for a session.
     var handleDeepLink: @Sendable (URL) async throws -> Void
     /// Return the current session if one is persisted, or nil.
@@ -20,13 +22,16 @@ struct AuthClient: Sendable {
     var signOut: @Sendable () async throws -> Void
     /// The authenticated user's email, if any.
     var currentUserEmail: @Sendable () async -> String?
+    /// Check if the current authenticated user is on the beta whitelist.
+    var isWhitelisted: @Sendable () async throws -> Bool
 }
 
 // MARK: - Live Implementation
 
 extension AuthClient: DependencyKey {
     /// Shared Supabase client — reads URL and anon key from Info.plist.
-    private static let supabase: SupabaseClient = {
+    /// Internal access so CloudReceiver can reuse the authenticated session.
+    static let supabase: SupabaseClient = {
         guard let urlString = Bundle.main.infoDictionary?["SupabaseURL"] as? String,
               !urlString.isEmpty,
               let url = URL(string: urlString),
@@ -49,6 +54,13 @@ extension AuthClient: DependencyKey {
                 redirectTo: redirectURL
             )
         },
+        verifyOTP: { email, token in
+            _ = try await supabase.auth.verifyOTP(
+                email: email,
+                token: token,
+                type: .magiclink
+            )
+        },
         handleDeepLink: { url in
             _ = try await supabase.auth.session(from: url)
         },
@@ -64,23 +76,36 @@ extension AuthClient: DependencyKey {
         },
         currentUserEmail: {
             try? await supabase.auth.session.user.email
+        },
+        isWhitelisted: {
+            struct Row: Decodable { let id: String }
+            let rows: [Row] = try await supabase
+                .from("beta_whitelist")
+                .select("id")
+                .execute()
+                .value
+            return !rows.isEmpty
         }
     )
 
     static let testValue = AuthClient(
         signInWithOTP: { _ in },
+        verifyOTP: { _, _ in },
         handleDeepLink: { _ in },
         restoreSession: { nil },
         signOut: {},
-        currentUserEmail: { nil }
+        currentUserEmail: { nil },
+        isWhitelisted: { true }
     )
 
     static let previewValue = AuthClient(
         signInWithOTP: { _ in },
+        verifyOTP: { _, _ in },
         handleDeepLink: { _ in },
         restoreSession: { nil },
         signOut: {},
-        currentUserEmail: { "preview@example.com" }
+        currentUserEmail: { "preview@example.com" },
+        isWhitelisted: { true }
     )
 }
 

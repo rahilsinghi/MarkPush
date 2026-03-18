@@ -24,6 +24,7 @@ type Options struct {
 	SupabaseURL string
 	SupabaseKey string
 	ReceiverID  string
+	UserID      string
 }
 
 // DryRunTransport prints the PushMessage as formatted JSON without sending.
@@ -74,7 +75,7 @@ func newCloud(opts Options) (Transport, error) {
 	if opts.SupabaseURL == "" || opts.SupabaseKey == "" {
 		return nil, fmt.Errorf("cloud transport: supabase_url and supabase_key required in config")
 	}
-	return NewCloudSender(opts.SupabaseURL, opts.SupabaseKey, opts.ReceiverID), nil
+	return NewCloudSender(opts.SupabaseURL, opts.SupabaseKey, opts.ReceiverID, opts.UserID), nil
 }
 
 // selectAuto tries mDNS discovery for 2 seconds. If a device is found,
@@ -90,7 +91,7 @@ func selectAuto(opts Options) (Transport, error) {
 
 	// Fallback to cloud if configured.
 	if opts.SupabaseURL != "" && opts.SupabaseKey != "" {
-		return NewCloudSender(opts.SupabaseURL, opts.SupabaseKey, opts.ReceiverID), nil
+		return NewCloudSender(opts.SupabaseURL, opts.SupabaseKey, opts.ReceiverID, opts.UserID), nil
 	}
 
 	return nil, fmt.Errorf("no device found on WiFi and cloud not configured; use --dry-run or configure cloud relay")

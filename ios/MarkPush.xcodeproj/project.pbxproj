@@ -24,6 +24,8 @@
 		3C43DE3C4E0EC137F3A580B2 /* Spacing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 286AA8E804D6D0E8FE252C39 /* Spacing.swift */; };
 		42C29A2655D84766B58100D9 /* FeedFeatureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B0C8E5E6CB836E8E5052C7E /* FeedFeatureTests.swift */; };
 		452353FF6A9FA30DCAB31DB0 /* ReaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 328D860A5AC8E71BBF3A92E1 /* ReaderView.swift */; };
+		4D0D3D8364130DCBAFEA2581 /* SharedModelContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A55E3141F8DD02095F3893A /* SharedModelContainer.swift */; };
+		645BA535BCC79896A9570F83 /* PersistenceClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFE19161921062EA93519366 /* PersistenceClient.swift */; };
 		68CA5F7966806F2CABC6167B /* Fraunces-Variable.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 5DD8F04F324EEEA9406D6598 /* Fraunces-Variable.ttf */; };
 		69CC360DE78D784B58A3FE99 /* KeychainAccess in Frameworks */ = {isa = PBXBuildFile; productRef = 9D2AEFD60F888C1E2EA81070 /* KeychainAccess */; };
 		714266CD4DD913D99DD883D7 /* LibraryFeatureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F48F6E9498A1C515A61BB36 /* LibraryFeatureTests.swift */; };
@@ -96,6 +98,7 @@
 		6B81378454729CD5E000D3A2 /* PushMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushMessage.swift; sourceTree = "<group>"; };
 		6DED85565AA72DA2CEF3F23C /* PairingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairingView.swift; sourceTree = "<group>"; };
 		7981473C541AF540AF7B22BC /* ReaderFeature.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderFeature.swift; sourceTree = "<group>"; };
+		7A55E3141F8DD02095F3893A /* SharedModelContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedModelContainer.swift; sourceTree = "<group>"; };
 		7D73B42F35B46BB5BCCE476F /* WiFiReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WiFiReceiver.swift; sourceTree = "<group>"; };
 		86613977F3F10095BC7BF125 /* AuthFeatureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthFeatureTests.swift; sourceTree = "<group>"; };
 		8DB6F3D2B2C838DD64212ECF /* DocCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocCard.swift; sourceTree = "<group>"; };
@@ -106,6 +109,7 @@
 		A076CB16B5D99533A1AC95EF /* LibraryFeature.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryFeature.swift; sourceTree = "<group>"; };
 		A4F757733B2AC64C9F031480 /* ReadingProgressBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadingProgressBar.swift; sourceTree = "<group>"; };
 		AD7DDF6C74C0F46ECA07DB6D /* Typography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Typography.swift; sourceTree = "<group>"; };
+		AFE19161921062EA93519366 /* PersistenceClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceClient.swift; sourceTree = "<group>"; };
 		B00663ED558088D9C19C2E59 /* CryptoUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CryptoUtils.swift; sourceTree = "<group>"; };
 		B1901B0D67C952746EB4836E /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		B74E905F5027BF81B86B290F /* ReaderFeatureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderFeatureTests.swift; sourceTree = "<group>"; };
@@ -160,6 +164,7 @@
 			children = (
 				9AA5A07CAFB81149E3166E62 /* AppFeature.swift */,
 				D13F2585374BACD111EBA557 /* MarkPushApp.swift */,
+				7A55E3141F8DD02095F3893A /* SharedModelContainer.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -187,6 +192,7 @@
 			children = (
 				40A158F843DEC6FF980533DA /* AuthClient.swift */,
 				FAD8D4B409807B6201A2025E /* MarkPushClient.swift */,
+				AFE19161921062EA93519366 /* PersistenceClient.swift */,
 			);
 			path = Clients;
 			sourceTree = "<group>";
@@ -495,12 +501,14 @@
 				AD478EAC4C4918ADBE13575B /* MarkPushClient.swift in Sources */,
 				85B2E57E04F60A83BBFA673C /* PairingFeature.swift in Sources */,
 				F53A898981ABEC68B1368C40 /* PairingView.swift in Sources */,
+				645BA535BCC79896A9570F83 /* PersistenceClient.swift in Sources */,
 				936D800D19585D830DD6289A /* PushMessage.swift in Sources */,
 				32B5ABF4FEE8D630246F416B /* ReaderFeature.swift in Sources */,
 				452353FF6A9FA30DCAB31DB0 /* ReaderView.swift in Sources */,
 				39E196CF875BBE38FEB5701C /* ReadingProgressBar.swift in Sources */,
 				04A59869C4D83C7F44033846 /* SettingsFeature.swift in Sources */,
 				E72104651FB87C94ABFBA503 /* SettingsView.swift in Sources */,
+				4D0D3D8364130DCBAFEA2581 /* SharedModelContainer.swift in Sources */,
 				3C43DE3C4E0EC137F3A580B2 /* Spacing.swift in Sources */,
 				2C988320C14E2839058A5D94 /* Theme.swift in Sources */,
 				29DAAF55A28A5AEFC45DF68C /* Typography.swift in Sources */,

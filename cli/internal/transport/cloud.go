@@ -15,14 +15,16 @@ type CloudSender struct {
 	SupabaseURL string
 	SupabaseKey string
 	ReceiverID  string
+	UserID      string // Supabase UUID of the target user
 }
 
 // NewCloudSender creates a cloud transport with the given Supabase credentials.
-func NewCloudSender(supabaseURL, supabaseKey, receiverID string) *CloudSender {
+func NewCloudSender(supabaseURL, supabaseKey, receiverID, userID string) *CloudSender {
 	return &CloudSender{
 		SupabaseURL: supabaseURL,
 		SupabaseKey: supabaseKey,
 		ReceiverID:  receiverID,
+		UserID:      userID,
 	}
 }
 
@@ -37,6 +39,9 @@ func (t *CloudSender) Send(ctx context.Context, msg *protocol.PushMessage) error
 		"sender_id":   msg.SenderID,
 		"receiver_id": t.ReceiverID,
 		"payload":     string(payload),
+	}
+	if t.UserID != "" {
+		body["user_id"] = t.UserID
 	}
 
 	b, err := json.Marshal(body)

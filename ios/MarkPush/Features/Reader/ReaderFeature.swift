@@ -4,8 +4,9 @@ import Foundation
 @Reducer
 struct ReaderFeature {
     @ObservableState
-    struct State: Equatable {
+    struct State: Equatable, Identifiable {
         let documentID: UUID
+        var id: UUID { documentID }
         let title: String
         let content: String
         let wordCount: Int

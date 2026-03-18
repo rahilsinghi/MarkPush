@@ -3,6 +3,7 @@ import Network
 
 /// Receives push messages over local WiFi using Network.framework.
 /// Advertises via Bonjour so the CLI can discover this device.
+/// Uses raw TCP with JSON framing (length-prefixed messages).
 actor WiFiReceiver {
     private var listener: NWListener?
     private var connections: [NWConnection] = []
@@ -20,7 +21,7 @@ actor WiFiReceiver {
         self.continuation = cont
     }
 
-    /// Start listening for incoming WebSocket connections.
+    /// Start listening for incoming TCP connections.
     func start() throws {
         let parameters = NWParameters.tcp
         parameters.allowLocalEndpointReuse = true
@@ -67,12 +68,26 @@ actor WiFiReceiver {
     private func handleConnection(_ connection: NWConnection) {
         connections.append(connection)
 
-        connection.start(queue: .global(qos: .userInitiated))
+        // Wait for the connection to be ready before receiving data.
+        connection.stateUpdateHandler = { [weak self] state in
+            switch state {
+            case .ready:
+                print("[WiFi] Connection ready from \(connection.endpoint)")
+                Task { await self?.receiveData(on: connection) }
+            case .failed(let error):
+                print("[WiFi] Connection failed: \(error)")
+            case .cancelled:
+                print("[WiFi] Connection cancelled")
+            default:
+                break
+            }
+        }
 
-        receiveMessage(on: connection)
+        connection.start(queue: .global(qos: .userInitiated))
     }
 
-    private func receiveMessage(on connection: NWConnection) {
+    private func receiveData(on connection: NWConnection) {
+        // Read up to 1MB — enough for any markdown document.
         connection.receive(minimumIncompleteLength: 1, maximumLength: 1_048_576) { [weak self] data, _, isComplete, error in
             guard let self else { return }
 
@@ -86,17 +101,35 @@ actor WiFiReceiver {
             }
 
             if !isComplete {
-                Task { await self.receiveMessage(on: connection) }
+                Task { await self.receiveData(on: connection) }
             }
         }
     }
 
     private func processData(_ data: Data, connection: NWConnection) {
         let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
+        // Go's json.Marshal uses RFC3339Nano (with fractional seconds).
+        // Swift's .iso8601 doesn't handle fractional seconds, so use a custom strategy.
+        decoder.dateDecodingStrategy = .custom { decoder in
+            let container = try decoder.singleValueContainer()
+            let str = try container.decode(String.self)
+
+            let fmt = ISO8601DateFormatter()
+            fmt.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            if let date = fmt.date(from: str) { return date }
+
+            fmt.formatOptions = [.withInternetDateTime]
+            if let date = fmt.date(from: str) { return date }
+
+            throw DecodingError.dataCorruptedError(
+                in: container, debugDescription: "Invalid date: \(str)")
+        }
 
         guard let message = try? decoder.decode(PushMessage.self, from: data) else {
-            print("[WiFi] Failed to decode message")
+            print("[WiFi] Failed to decode message (\(data.count) bytes)")
+            if let str = String(data: data, encoding: .utf8) {
+                print("[WiFi] Raw data: \(str.prefix(200))")
+            }
             return
         }
 
