@@ -5,7 +5,7 @@ MarkPush is an open-source tool that pushes markdown files from the terminal
 to a native iOS app over WiFi or cloud relay. Three entry points:
 1. `cli/` — Go CLI tool (`markpush`)
 2. `ios/` — SwiftUI iOS app (MarkPush)
-3. `mcp/` — TypeScript MCP server (`@markpush/mcp-server`) — PLANNED
+3. `mcp/` — TypeScript MCP server (`@markpush/mcp-server`) — PUBLISHED on npm
 
 ## System Architecture
 See `docs/system-architecture.md` for full diagrams. Key flow:
@@ -14,7 +14,7 @@ CLI / MCP Server → AES-256-GCM encrypt → WiFi or Cloud → iOS App → Decry
 ```
 
 ## Architecture
-- Transport: WebSocket (local WiFi via mDNS) OR Supabase Realtime (cloud)
+- Transport: Raw TCP (local WiFi via mDNS) OR Supabase Realtime (cloud)
 - Pairing: QR code + AES-256 shared key, stored in Keychain (iOS) and ~/.config/markpush/ (CLI)
 - Protocol: JSON messages with base64-encoded markdown content
 - Encryption: AES-256-GCM, format: nonce(12B) || ciphertext || tag(16B), then base64
@@ -30,8 +30,9 @@ CLI / MCP Server → AES-256-GCM encrypt → WiFi or Cloud → iOS App → Decry
 - Error handling: always wrap with `fmt.Errorf("context: %w", err)`
 - Config file: `~/.config/markpush/config.toml`
 - Use `cobra` for CLI commands, `viper` for config
-- Use `gorilla/websocket` for WebSocket
-- Use `hashicorp/mdns` for Bonjour/mDNS
+- WiFi transport uses raw TCP (not WebSocket) — NWProtocolWebSocket handshake fails with gorilla/websocket
+- Use `hashicorp/mdns` for Bonjour/mDNS (note: can't discover simulator, works on real devices)
+- Cloud transport includes `user_id` for RLS-compliant Supabase Realtime routing
 - Tests: table-driven, 80%+ coverage
 
 ### Swift/iOS
@@ -43,12 +44,14 @@ CLI / MCP Server → AES-256-GCM encrypt → WiFi or Cloud → iOS App → Decry
 - Accessibility: every interactive element has `.accessibilityLabel`
 - No hardcoded colors — use semantic color assets
 
-### TypeScript MCP Server (planned)
+### TypeScript MCP Server (published: @markpush/mcp-server@0.1.0)
 - `@modelcontextprotocol/sdk` with `StdioServerTransport`
 - Zod schemas for tool inputs
 - Web Crypto API for AES-256-GCM (same format as Go/Swift)
 - Shared config with CLI at `~/.config/markpush/`
-- Tools: push_markdown, push_template, pair_device, list_devices, push_history
+- Tools: push_markdown, push_template, pair_device, unpair_device, list_devices, push_history
+- Install: `claude mcp add markpush -- npx -y @markpush/mcp-server`
+- npm org: `@markpush` (owner: rahil2704)
 
 ## Directory Structure
 ```
@@ -116,6 +119,15 @@ cd mcp && npm run dev  # run locally
 - **Supabase Auth**: set `SupabaseURL` and `SupabaseAnonKey` in `ios/MarkPush/Info.plist` before running
 - **Magic link deep links**: URL scheme `markpush://` registered in Info.plist, handled via `.onOpenURL` in MarkPushApp
 - **SupabaseClient is Sendable** — no need for `nonisolated(unsafe)` wrapper (unlike KeychainAccess)
+- **WiFiReceiver actor lifetime**: must store in `nonisolated(unsafe) var` — local variable gets deallocated after `startReceiving` returns, killing the listener
+- **Go RFC3339Nano timestamps**: Swift `.iso8601` can't parse fractional seconds — use custom decoder with `.withFractionalSeconds`
+- **OTP verify type**: use `.magiclink` (not `.email`) when `signInWithOTP(redirectTo:)` was called
+- **Supabase OTP length**: 8 digits by default (configurable in dashboard), iOS accepts 4-8
+- **Supabase email template**: must include `{{ .Token }}` for OTP code — default only shows magic link
+- **Cloud Realtime RLS**: filter by `user_id` (not `receiver_id`) for authenticated iOS clients
+- **SharedModelContainer**: singleton `ModelContainer` shared between app views and TCA PersistenceClient
+- **New files after changes**: run `cd ios && xcodegen generate` to include them in the Xcode project
+- **Xcode beta path**: may be at `/Users/rahilsinghi/Downloads/Xcode-beta.app` — use `sudo xcode-select -s` to switch
 
 ## Current Status
 Phase 1: CLI Tool ✅
@@ -131,9 +143,15 @@ iOS Auth Flow ✅ (AuthClient, AuthFeature, magic link login, deep links, sign o
 E2E Backend Tests ✅ (33 SQL assertions: schema, RLS dual-path, profiles, devices, whitelist, tokens)
 E2E iOS Tests ✅ (50 TCA tests: Auth 23, Settings 8, App 4, Library 5, Feed 3, Pairing 3, Reader 4)
 Supabase Live ✅ (migrations applied, rahilsinghi300@gmail.com whitelisted, redirect URLs configured)
-OTP Code Entry ✅ (6-digit code fallback when magic link deep link doesn't work)
+OTP Code Entry ✅ (code fallback when magic link deep link doesn't work, accepts 4-8 digits)
 Beta Whitelist Enforcement ✅ (non-whitelisted users signed out after auth, shown beta access screen)
-**Next:** Manual testing (magic link + OTP flow, QR pairing, push delivery), npm publish MCP, TestFlight beta
+WiFi E2E ✅ (CLI → raw TCP → iOS Feed → Reader with MarkdownUI → Library with SwiftData)
+Cloud E2E ✅ (CLI → Supabase REST → iOS Realtime → Feed, user_id routing)
+Feed → Reader Navigation ✅ (tap to open, full markdown rendering with code blocks, tables, tags)
+SwiftData Persistence ✅ (PersistenceClient, SharedModelContainer, documents in Library)
+Session Persistence ✅ (30-day re-auth via Keychain + UserDefaults lastAuthDate)
+npm Published ✅ (@markpush/mcp-server@0.1.0, public, MIT)
+**Next:** Test MCP live with Claude, update macOS 26.4 beta → physical device testing, paid Apple Developer → TestFlight, new PRD (dual-mode)
 
 ## Key Docs
 - `docs/system-architecture.md` — Full system diagrams
