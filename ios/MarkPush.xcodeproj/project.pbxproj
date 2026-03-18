@@ -28,6 +28,7 @@
 		645BA535BCC79896A9570F83 /* PersistenceClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFE19161921062EA93519366 /* PersistenceClient.swift */; };
 		68CA5F7966806F2CABC6167B /* Fraunces-Variable.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 5DD8F04F324EEEA9406D6598 /* Fraunces-Variable.ttf */; };
 		69CC360DE78D784B58A3FE99 /* KeychainAccess in Frameworks */ = {isa = PBXBuildFile; productRef = 9D2AEFD60F888C1E2EA81070 /* KeychainAccess */; };
+		6BD49EC66864151AB94B7EB8 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = FCED1C657BDA720D8D4F34AF /* PrivacyInfo.xcprivacy */; };
 		714266CD4DD913D99DD883D7 /* LibraryFeatureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F48F6E9498A1C515A61BB36 /* LibraryFeatureTests.swift */; };
 		791B3D86CED72DD452EBD37D /* PlayfairDisplay-Variable.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 331EC4B600676FC98E957CB3 /* PlayfairDisplay-Variable.ttf */; };
 		7D8AEA832094593AC1EC9C86 /* AuthClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40A158F843DEC6FF980533DA /* AuthClient.swift */; };
@@ -122,6 +123,7 @@
 		F42B5F0C78342612FE7B348A /* SettingsFeature.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsFeature.swift; sourceTree = "<group>"; };
 		FA04CD765325034226866747 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		FAD8D4B409807B6201A2025E /* MarkPushClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkPushClient.swift; sourceTree = "<group>"; };
+		FCED1C657BDA720D8D4F34AF /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -304,6 +306,7 @@
 			isa = PBXGroup;
 			children = (
 				E1D2087BC72BD925D0DAF9C8 /* Colors.xcassets */,
+				FCED1C657BDA720D8D4F34AF /* PrivacyInfo.xcprivacy */,
 				FF01509A7CC5D2EA74481008 /* Fonts */,
 			);
 			path = Resources;
@@ -413,6 +416,7 @@
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					5FF00030E05DE0F7B7D493FB = {
+						DevelopmentTeam = MWU56C4YRR;
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -456,6 +460,7 @@
 				1BE887C5A387EBFDC00F0D98 /* JetBrainsMono-Variable.ttf in Resources */,
 				9F0830FB88BDBDF320B2BDB9 /* Lora-Variable.ttf in Resources */,
 				791B3D86CED72DD452EBD37D /* PlayfairDisplay-Variable.ttf in Resources */,
+				6BD49EC66864151AB94B7EB8 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -599,6 +604,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = MWU56C4YRR;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = MarkPush/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -678,6 +684,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = MWU56C4YRR;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = MarkPush/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (

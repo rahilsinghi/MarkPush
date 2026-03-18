@@ -8,23 +8,26 @@ struct FeedView: View {
         ZStack {
             Color.mpBackground.ignoresSafeArea()
 
-            if store.documents.isEmpty {
-                emptyState
-            } else {
-                documentList
+            VStack(spacing: 0) {
+                // Custom header — replaces navigation bar to avoid iOS 26 system buttons.
+                HStack {
+                    Text("MarkPush")
+                        .font(MPFont.appTitle)
+                        .foregroundStyle(Color.mpTextPrimary)
+                    Spacer()
+                    ConnectionBadge(isConnected: store.isConnected)
+                }
+                .padding(.horizontal, MPSpacing.screenPadding)
+                .padding(.vertical, MPSpacing.sm)
+
+                if store.documents.isEmpty {
+                    emptyState
+                } else {
+                    documentList
+                }
             }
         }
-        .navigationTitle("")
-        .toolbar {
-            ToolbarItem(placement: .navigationBarLeading) {
-                Text("MarkPush")
-                    .font(MPFont.appTitle)
-                    .foregroundStyle(Color.mpTextPrimary)
-            }
-            ToolbarItem(placement: .navigationBarTrailing) {
-                ConnectionBadge(isConnected: store.isConnected)
-            }
-        }
+        .navigationBarHidden(true)
         .task { store.send(.startReceiving) }
     }
 

@@ -35,10 +35,9 @@ struct DocCard: View {
 
                 // Title
                 Text(document.title)
-                    .font(MPFont.cardTitle)
+                    .font(document.isRead ? Font.custom("Lora-Regular", size: 19, relativeTo: .headline) : MPFont.cardTitle)
                     .foregroundStyle(Color.mpTextPrimary)
                     .lineLimit(2)
-                    .fontWeight(document.isRead ? .regular : .semibold)
 
                 // Excerpt
                 if !document.excerpt.isEmpty {

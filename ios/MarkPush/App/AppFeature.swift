@@ -82,6 +82,17 @@ struct AppView: View {
     }
 
     private var mainTabView: some View {
+        Group {
+            if #available(iOS 18.0, *) {
+                tabbedContent
+                    .tabViewStyle(.tabBarOnly)
+            } else {
+                tabbedContent
+            }
+        }
+    }
+
+    private var tabbedContent: some View {
         TabView(selection: $store.selectedTab.sending(\.tabSelected)) {
             NavigationStack {
                 FeedView(store: store.scope(state: \.feed, action: \.feed))

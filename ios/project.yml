@@ -44,6 +44,7 @@ targets:
         CURRENT_PROJECT_VERSION: 1
         PRODUCT_BUNDLE_IDENTIFIER: com.rahilsinghi.markpush
         CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: MWU56C4YRR
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ENABLE_PREVIEWS: true
       configs:

@@ -42,7 +42,11 @@ extension AuthClient: DependencyKey {
                 + "Add your Supabase project credentials to ios/MarkPush/Info.plist."
             )
         }
-        return SupabaseClient(supabaseURL: url, supabaseKey: key)
+        return SupabaseClient(
+            supabaseURL: url,
+            supabaseKey: key,
+            options: .init(auth: .init(emitLocalSessionAsInitialSession: true))
+        )
     }()
 
     private static let redirectURL = URL(string: "markpush://auth/callback")

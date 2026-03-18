@@ -4,6 +4,7 @@ import SwiftUI
 
 struct PairingView: View {
     @Bindable var store: StoreOf<PairingFeature>
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         NavigationStack {
@@ -25,7 +26,7 @@ struct PairingView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { store.send(.dismiss) }
+                    Button("Cancel") { dismiss() }
                 }
             }
         }
@@ -119,7 +120,7 @@ struct PairingView: View {
 
             Spacer()
 
-            Button("Done") { store.send(.dismiss) }
+            Button("Done") { dismiss() }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
                 .padding(.horizontal, 40)
