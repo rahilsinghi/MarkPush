@@ -23,6 +23,16 @@ private nonisolated(unsafe) var activeCloudReceiver: CloudReceiver?
 extension MarkPushClient: DependencyKey {
     static let liveValue = MarkPushClient(
         startReceiving: {
+            // Stop any existing receivers before starting new ones.
+            if let wifi = activeWiFiReceiver {
+                await wifi.stop()
+                activeWiFiReceiver = nil
+            }
+            if let cloud = activeCloudReceiver {
+                await cloud.stop()
+                activeCloudReceiver = nil
+            }
+
             let deviceID = (try? KeychainManager.loadOrCreateDeviceID()) ?? UUID().uuidString
 
             // Start WiFi receiver.
@@ -31,7 +41,8 @@ extension MarkPushClient: DependencyKey {
             activeWiFiReceiver = wifiReceiver
 
             // Start Cloud receiver if user is authenticated.
-            let userID = try? await AuthClient.supabase.auth.session.user.id.uuidString
+            // Use lowercased UUID to match CLI/MCP convention.
+            let userID = try? await AuthClient.supabase.auth.session.user.id.uuidString.lowercased()
             if let userID {
                 let cloudReceiver = CloudReceiver(
                     client: AuthClient.supabase,

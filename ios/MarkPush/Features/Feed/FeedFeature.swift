@@ -45,6 +45,7 @@ struct FeedFeature {
         Reduce { state, action in
             switch action {
             case .startReceiving:
+                guard !state.isReceiving else { return .none }
                 state.isReceiving = true
                 state.isConnected = true
                 return .run { send in
