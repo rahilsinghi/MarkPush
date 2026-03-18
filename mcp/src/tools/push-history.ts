@@ -17,15 +17,15 @@ export function registerPushHistory(server: McpServer) {
       };
     }
 
-    const lines = entries.map((e) => {
+    const lines = entries.map((e, i) => {
       const date = new Date(e.timestamp).toLocaleString();
-      return `• "${e.title}" — ${e.word_count} words — ${e.transport} — ${date}`;
+      return `${i + 1}. "${e.title}" · ${e.word_count} words · ${e.transport} · ${date}`;
     });
 
     return {
       content: [{
         type: "text",
-        text: `Recent pushes (${entries.length}):\n${lines.join("\n")}`,
+        text: `📋 Push History (${entries.length})\n${"━".repeat(24)}\n${lines.join("\n")}`,
       }],
     };
   });

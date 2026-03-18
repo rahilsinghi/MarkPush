@@ -7,7 +7,8 @@ import (
 	"io"
 	"os"
 
-	"github.com/charmbracelet/lipgloss"
+	"strings"
+
 	"github.com/rahilsinghi/markpush/cli/internal/config"
 	mpcrypto "github.com/rahilsinghi/markpush/cli/internal/crypto"
 	"github.com/rahilsinghi/markpush/cli/internal/protocol"
@@ -116,11 +117,35 @@ func runPush(cmd *cobra.Command, args []string) error {
 	}
 
 	if !opts.DryRun {
-		success := lipgloss.NewStyle().
-			Bold(true).
-			Foreground(lipgloss.Color("78")).
-			Render("✓ Pushed")
-		fmt.Fprintf(os.Stderr, "%s %q (%d words)\n", success, msg.Title, msg.WordCount)
+		deviceName := "device"
+		if len(cfg.Devices) > 0 {
+			deviceName = cfg.Devices[0].Name
+		}
+
+		check := successStyle.Render("✓")
+		device := boldStyle.Render(deviceName)
+		arrow := subtleStyle.Render("━━━▶")
+
+		lines := []string{
+			"",
+			fmt.Sprintf("%s Pushed", check),
+			fmt.Sprintf("terminal %s %s", arrow, device),
+			"",
+			fmt.Sprintf(`"%s"`, msg.Title),
+		}
+
+		details := fmt.Sprintf("%s words", formatNumber(msg.WordCount))
+		if msg.Encrypted {
+			details += " · encrypted"
+		}
+		lines = append(lines, dimStyle.Render(details))
+
+		if len(opts.Tags) > 0 {
+			lines = append(lines, dimStyle.Render("Tags: "+strings.Join(opts.Tags, ", ")))
+		}
+
+		lines = append(lines, "")
+		fmt.Fprintln(os.Stderr, renderCard(lines...))
 	}
 
 	return nil

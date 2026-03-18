@@ -69,7 +69,13 @@ export function registerPushTemplate(server: McpServer) {
         return {
           content: [{
             type: "text",
-            text: `✅ Pushed "${msg.title}" (template: ${args.template}) to ${cfg.devices![0].name}\n   Words: ${msg.word_count} | Transport: ${result.transport}`,
+            text: [
+              `✅ Pushed to ${cfg.devices![0].name}`,
+              ``,
+              `📄 "${msg.title}" (template: ${args.template})`,
+              `📝 ${msg.word_count} words · ${result.transport}${msg.encrypted ? " · encrypted" : ""}`,
+              ...(templateTags.length ? [`🏷️  ${templateTags.join(", ")}`] : []),
+            ].join("\n"),
           }],
         };
       } catch (err) {

@@ -2,8 +2,8 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
-	"github.com/charmbracelet/lipgloss"
 	"github.com/spf13/cobra"
 )
 
@@ -12,10 +12,13 @@ var historyCmd = &cobra.Command{
 	Short: "Show push history",
 	Long:  `Display a list of previously pushed documents with timestamps and status.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		msg := lipgloss.NewStyle().
-			Foreground(lipgloss.Color("214")).
-			Render("⚠ Push history is not yet implemented. Coming in Phase 5.")
-		fmt.Println(msg)
+		card := renderCard(
+			"",
+			warnStyle.Render("⚠ Push history is not yet implemented"),
+			subtleStyle.Render("Coming soon"),
+			"",
+		)
+		fmt.Fprintln(os.Stderr, card)
 		return nil
 	},
 }

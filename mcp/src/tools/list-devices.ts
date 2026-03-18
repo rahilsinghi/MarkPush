@@ -15,12 +15,14 @@ export function registerListDevices(server: McpServer) {
       };
     }
 
-    const lines = devices.map((d, i) => `${i + 1}. ${d.name} (${d.id})`);
+    const lines = devices.map((d, i) =>
+      `${i + 1}. ${d.name}\n   ID: ${d.id} · Encrypted`,
+    );
 
     return {
       content: [{
         type: "text",
-        text: `Paired devices:\n${lines.join("\n")}`,
+        text: `📱 Paired Devices (${devices.length})\n${"━".repeat(24)}\n${lines.join("\n\n")}`,
       }],
     };
   });

@@ -62,9 +62,13 @@ export function registerPushMarkdown(server: McpServer) {
         content: [{
           type: "text",
           text: [
-            `✅ Pushed "${msg.title}" to ${cfg.devices![0].name}`,
-            `   Words: ${msg.word_count} | Transport: ${result.transport} | Encrypted: ${msg.encrypted}`,
-            `   ID: ${msg.id}`,
+            `✅ Pushed to ${cfg.devices![0].name}`,
+            ``,
+            `📄 "${msg.title}"`,
+            `📝 ${msg.word_count} words · ${result.transport}${msg.encrypted ? " · encrypted" : ""}`,
+            ...(args.tags?.length ? [`🏷️  ${args.tags.join(", ")}`] : []),
+            ``,
+            `ID: ${msg.id}`,
           ].join("\n"),
         }],
       };

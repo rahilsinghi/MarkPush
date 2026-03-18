@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/charmbracelet/lipgloss"
 	"github.com/fsnotify/fsnotify"
 	"github.com/rahilsinghi/markpush/cli/internal/config"
 	"github.com/rahilsinghi/markpush/cli/internal/transport"
@@ -57,12 +56,13 @@ func runWatch(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("watch: load config: %w", err)
 	}
 
-	title := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("212")).Render
-	subtle := lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render
-
 	absDir, _ := filepath.Abs(dir)
-	fmt.Fprintf(os.Stderr, "%s %s\n", title("Watching"), absDir)
-	fmt.Fprintf(os.Stderr, "%s\n\n", subtle("Press Ctrl+C to stop"))
+	header := renderCard(
+		fmt.Sprintf("%s %s", brandStyle.Render("Watching"), boldStyle.Render(absDir)),
+		subtleStyle.Render("Ctrl+C to stop"),
+	)
+	fmt.Fprintln(os.Stderr, header)
+	fmt.Fprintln(os.Stderr)
 
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
@@ -167,8 +167,10 @@ func pushFile(ctx context.Context, path string, opts pushOptions, cfg *config.Co
 		return fmt.Errorf("send: %w", err)
 	}
 
-	success := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("78")).Render
-	fmt.Fprintf(os.Stderr, "%s %q (%d words)\n", success("✓ Pushed"), msg.Title, msg.WordCount)
+	now := time.Now().Format("15:04:05")
+	ts := subtleStyle.Render(now)
+	check := successStyle.Render("✓ Pushed")
+	fmt.Fprintf(os.Stderr, "  %s  %s %q (%s words)\n", ts, check, msg.Title, formatNumber(msg.WordCount))
 	return nil
 }
 

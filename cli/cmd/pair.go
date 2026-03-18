@@ -12,7 +12,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/charmbracelet/lipgloss"
 	"github.com/rahilsinghi/markpush/cli/internal/config"
 	mpcrypto "github.com/rahilsinghi/markpush/cli/internal/crypto"
 	"github.com/rahilsinghi/markpush/cli/internal/protocol"
@@ -90,12 +89,9 @@ func runPair(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("generate QR code: %w", err)
 	}
 
-	title := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("212")).Render
-	subtle := lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render
-
-	fmt.Fprintf(os.Stderr, "\n%s\n\n", title("Scan this QR code with the MarkPush iOS app:"))
+	fmt.Fprintf(os.Stderr, "\n%s\n\n", brandStyle.Render("Scan with MarkPush iOS app:"))
 	fmt.Fprint(os.Stderr, qrStr)
-	fmt.Fprintf(os.Stderr, "\n%s\n", subtle(fmt.Sprintf("Listening on %s:%d — waiting for device...", localIP, port)))
+	fmt.Fprintf(os.Stderr, "\n%s\n", subtleStyle.Render(fmt.Sprintf("Listening on %s:%d — waiting for device...", localIP, port)))
 
 	// Handle pairing request.
 	resultCh := make(chan pairResponse, 1)
@@ -153,8 +149,14 @@ func runPair(cmd *cobra.Command, _ []string) error {
 			return fmt.Errorf("save config: %w", err)
 		}
 
-		success := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("78")).Render
-		fmt.Fprintf(os.Stderr, "\n%s %s\n", success("✓ Paired with"), resp.DeviceName)
+		card := renderCard(
+			"",
+			fmt.Sprintf("%s Paired with %s", successStyle.Render("✓"), boldStyle.Render(resp.DeviceName)),
+			dimStyle.Render("AES-256 encrypted link established"),
+			dimStyle.Render("Key saved to ~/.config/markpush/"),
+			"",
+		)
+		fmt.Fprintf(os.Stderr, "\n%s\n", card)
 		return nil
 
 	case err := <-errCh:

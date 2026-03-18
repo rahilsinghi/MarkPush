@@ -15,11 +15,13 @@ export function registerPairDevice(server: McpServer) {
         content: [{
           type: "text",
           text: [
-            `✅ Paired with ${result.deviceName}!`,
-            `   Device ID: ${result.deviceId}`,
-            `   Encryption key stored in ~/.config/markpush/config.toml`,
-            "",
-            "You can now use `push_markdown` to send documents to your iPhone.",
+            `✅ Paired with ${result.deviceName}`,
+            `${"━".repeat(30)}`,
+            `🔐 AES-256 encryption key established`,
+            `📁 Saved to ~/.config/markpush/config.toml`,
+            `📱 Device ID: ${result.deviceId}`,
+            ``,
+            `Ready! Use \`push_markdown\` to send documents.`,
           ].join("\n"),
         }],
       };

@@ -23,7 +23,12 @@ export function registerUnpairDevice(server: McpServer) {
     return {
       content: [{
         type: "text",
-        text: `✅ Unpaired ${device.name} (${device.id}). Encryption key removed.`,
+        text: [
+          `✅ Unpaired ${device.name}`,
+          ``,
+          `Device ID: ${device.id}`,
+          `Encryption key removed.`,
+        ].join("\n"),
       }],
     };
   });

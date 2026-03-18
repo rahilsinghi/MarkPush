@@ -44,6 +44,16 @@ func init() {
 	cobra.OnInitialize(initConfig)
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default ~/.config/markpush/config.toml)")
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
+
+	// Show branded banner before root help.
+	defaultHelp := rootCmd.HelpFunc()
+	rootCmd.SetHelpFunc(func(cmd *cobra.Command, args []string) {
+		if cmd == rootCmd {
+			fmt.Fprintln(cmd.OutOrStdout(), renderBanner())
+			fmt.Fprintln(cmd.OutOrStdout())
+		}
+		defaultHelp(cmd, args)
+	})
 }
 
 func initConfig() {

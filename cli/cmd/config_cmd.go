@@ -22,11 +22,22 @@ var configShowCmd = &cobra.Command{
 			return fmt.Errorf("load config: %w", err)
 		}
 
-		fmt.Printf("device_id      = %q\n", cfg.DeviceID)
-		fmt.Printf("device_name    = %q\n", cfg.DeviceName)
-		fmt.Printf("transport_mode = %q\n", cfg.TransportMode)
-		fmt.Printf("config_dir     = %q\n", cfg.ConfigDir)
-		fmt.Printf("paired_devices = %d\n", len(cfg.Devices))
+		kv := func(key, value string) string {
+			return dimStyle.Render(fmt.Sprintf("%-15s", key)) + "  " + boldStyle.Render(value)
+		}
+
+		card := renderCard(
+			"",
+			brandStyle.Render("Configuration"),
+			"",
+			kv("Device ID", cfg.DeviceID),
+			kv("Device Name", cfg.DeviceName),
+			kv("Transport", cfg.TransportMode),
+			kv("Config", cfg.ConfigDir),
+			kv("Paired Devices", fmt.Sprintf("%d", len(cfg.Devices))),
+			"",
+		)
+		fmt.Println(card)
 		return nil
 	},
 }
