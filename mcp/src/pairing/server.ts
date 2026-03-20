@@ -16,22 +16,38 @@ export interface PairResult {
   deviceId: string;
 }
 
+export interface PairingSession {
+  qrCode: string;
+  port: number;
+  localIP: string;
+  completion: Promise<PairResult>;
+  cancel: () => void;
+}
+
 /**
- * Run the QR pairing flow:
- * 1. Generate 32-byte secret
- * 2. Start HTTP server
- * 3. Generate QR code with pairing payload
- * 4. Wait for iOS POST /pair
- * 5. Derive + store shared key
+ * Start the QR pairing flow and return immediately with the QR code.
+ * The pairing server runs in the background until the iOS device connects
+ * or the timeout expires. Callers should await `completion` or use
+ * `list_devices` to verify success.
  */
-export async function runPairing(timeoutSec: number = 120): Promise<PairResult> {
+export async function startPairing(timeoutSec: number = 120): Promise<PairingSession> {
   const cfg = loadConfig();
 
   // Generate pairing secret.
   const secret = randomBytes(32).toString("base64");
   const localIP = getLocalIP();
 
-  return new Promise<PairResult>((resolve, reject) => {
+  let resolveCompletion!: (result: PairResult) => void;
+  let rejectCompletion!: (err: Error) => void;
+  const completion = new Promise<PairResult>((res, rej) => {
+    resolveCompletion = res;
+    rejectCompletion = rej;
+  });
+
+  // Prevent unhandled rejection if timeout fires after tool returns.
+  completion.catch(() => {});
+
+  return new Promise<PairingSession>((resolveSession, rejectSession) => {
     const server = createServer((req, res) => {
       if (req.method === "POST" && req.url === "/pair") {
         let body = "";
@@ -56,12 +72,12 @@ export async function runPairing(timeoutSec: number = 120): Promise<PairResult> 
             res.end(JSON.stringify({ confirmed: true }));
 
             cleanup();
-            resolve({ deviceName: data.device_name, deviceId: data.device_id });
+            resolveCompletion({ deviceName: data.device_name, deviceId: data.device_id });
           } catch (err) {
             res.writeHead(400);
             res.end("Invalid request");
             cleanup();
-            reject(new Error(`Pairing failed: ${(err as Error).message}`));
+            rejectCompletion(new Error(`Pairing failed: ${(err as Error).message}`));
           }
         });
       } else {
@@ -72,7 +88,7 @@ export async function runPairing(timeoutSec: number = 120): Promise<PairResult> 
 
     const timeout = setTimeout(() => {
       cleanup();
-      reject(new Error(`Pairing timed out after ${timeoutSec}s`));
+      rejectCompletion(new Error(`Pairing timed out after ${timeoutSec}s`));
     }, timeoutSec * 1000);
 
     function cleanup() {
@@ -80,12 +96,17 @@ export async function runPairing(timeoutSec: number = 120): Promise<PairResult> 
       server.close();
     }
 
+    function cancel() {
+      cleanup();
+      rejectCompletion(new Error("Pairing cancelled"));
+    }
+
     // Listen on random port.
     server.listen(0, () => {
       const addr = server.address();
       if (!addr || typeof addr === "string") {
         cleanup();
-        reject(new Error("Failed to start pairing server"));
+        rejectSession(new Error("Failed to start pairing server"));
         return;
       }
 
@@ -101,12 +122,21 @@ export async function runPairing(timeoutSec: number = 120): Promise<PairResult> 
         name: cfg.device_name,
       };
 
-      // Print QR code to stderr (stdout is reserved for MCP protocol).
       const payloadJSON = JSON.stringify(payload);
       qrcode.generate(payloadJSON, { small: true }, (qr: string) => {
+        // Still write to stderr for non-MCP consumers.
         process.stderr.write("\n📱 Scan this QR code with the MarkPush iOS app:\n\n");
         process.stderr.write(qr);
         process.stderr.write(`\nListening on ${localIP}:${port} — waiting for device...\n`);
+
+        // Return session immediately — caller gets the QR without waiting.
+        resolveSession({
+          qrCode: qr,
+          port,
+          localIP,
+          completion,
+          cancel,
+        });
       });
     });
   });
