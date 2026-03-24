@@ -45,13 +45,15 @@ CLI / MCP Server → AES-256-GCM encrypt → WiFi or Cloud → iOS App → Decry
 - Accessibility: every interactive element has `.accessibilityLabel`
 - No hardcoded colors — use semantic color assets
 
-### TypeScript MCP Server (published: @markpush/mcp-server@0.1.0)
+### TypeScript MCP Server (published: @markpush/mcp-server@0.2.0)
 - `@modelcontextprotocol/sdk` with `StdioServerTransport`
 - Zod schemas for tool inputs
 - Web Crypto API for AES-256-GCM (same format as Go/Swift)
 - Shared config with CLI at `~/.config/markpush/`
 - Tools: push_markdown, push_template, pair_device, unpair_device, list_devices, push_history
-- Install: `claude mcp add markpush -- npx -y @markpush/mcp-server`
+- Global install for Claude Code: `claude mcp add --scope user markpush -- npx -y @markpush/mcp-server`
+- Project-scoped install: `claude mcp add markpush -- npx -y @markpush/mcp-server`
+- Can also pair and push directly via Node.js without Go CLI (see "Running Locally" section)
 - npm org: `@markpush` (owner: rahil2704)
 
 ## Directory Structure
@@ -85,24 +87,96 @@ cd cli && go run . --help
 go test ./... -race
 ```
 
-### iOS
+### iOS — Building & Deploying to Physical Device
+Prerequisites: Xcode (App Store), xcodegen (`brew install xcodegen`), `xcode-select` pointing to Xcode.app (not CommandLineTools).
+
 ```bash
-# Generate project (after modifying project.yml)
+# 1. Ensure xcode-select points to Xcode.app (one-time)
+sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+
+# 2. Install xcodegen if missing
+brew install xcodegen
+
+# 3. Generate project from project.yml
 cd ios && xcodegen generate
 
-# Open in Xcode
-open -a Xcode ios/MarkPush.xcodeproj
+# 4. Open in Xcode
+open ios/MarkPush.xcodeproj
 
-# Or build from CLI
+# 5. In Xcode:
+#    - Wait for SPM package resolution (status bar)
+#    - Target → Signing & Capabilities → set Team (Personal Team for free account)
+#    - If bundle ID conflicts, change PRODUCT_BUNDLE_IDENTIFIER
+#    - Select connected iPhone → Cmd+R
+#
+# 6. First run on device: Settings → General → VPN & Device Management → Trust
+```
+
+**Macro trust errors after regenerating .xcodeproj:** TCA and its dependencies use Swift macros.
+After `xcodegen generate`, Xcode resets macro trust. Fix: in the build log (Report Navigator),
+click each macro error → "Trust & Enable". Must trust all 4: ComposableArchitectureMacros,
+CasePathsMacros, DependenciesMacrosPlugin, PerceptionMacros. Then rebuild.
+
+**Free Apple ID limitations:** 7-day provisioning profiles (re-deploy weekly), 3-app sideload limit, no APNs push notifications.
+
+```bash
+# Or build from CLI (simulator)
 xcodebuild build -project ios/MarkPush.xcodeproj -scheme MarkPush \
   -destination 'platform=iOS Simulator,name=iPhone 16e'
 ```
 
 ### MCP Server
 ```bash
+cd mcp && npm install  # install deps (first time)
+cd mcp && npm run build # compile TypeScript
 cd mcp && npm test     # run tests
 cd mcp && npm run dev  # run locally
 ```
+
+### MCP Server — Pairing & Pushing (without Go CLI)
+If Go is not installed, you can pair and push directly via the MCP server's Node.js modules:
+
+```bash
+# Pair (generates QR code, scan from iOS app, 180s timeout):
+cd mcp && node -e "
+const { startPairing } = require('./dist/pairing/server.js');
+startPairing(180).then(s => {
+  console.log(s.qrCode);
+  console.log('Listening on ' + s.localIP + ':' + s.port);
+  s.completion.then(r => { console.log('Paired: ' + r.deviceName); process.exit(0); })
+    .catch(e => { console.error(e.message); process.exit(1); });
+});
+"
+
+# Push markdown (after pairing):
+cd mcp && node -e "
+const { loadConfig, getPairedDeviceKey, appendHistory } = require('./dist/config/store.js');
+const { buildPushMessage } = require('./dist/protocol/messages.js');
+const { encrypt } = require('./dist/crypto/aes.js');
+const { autoSend } = require('./dist/transport/auto.js');
+(async () => {
+  const cfg = loadConfig();
+  const content = '# Test\n\nHello from Node.js!';
+  const msg = buildPushMessage({ content, source: 'node', senderID: cfg.device_id, senderName: cfg.device_name });
+  const paired = getPairedDeviceKey(cfg);
+  if (paired) { msg.content = encrypt(paired.key, Buffer.from(content)); msg.encrypted = true; }
+  const r = await autoSend(cfg, msg);
+  console.log('Pushed via ' + r.transport);
+})();
+"
+```
+
+## WiFi vs Cloud Transport Notes
+- **mDNS discovery** (`_markpush._tcp`) requires the iOS app to be **open and in the foreground** with the WiFi receiver active. First attempt may timeout (2s default); retry or use longer timeout (10s).
+- **Cloud relay** is more reliable for background delivery. Configure in `~/.config/markpush/config.toml`:
+  ```toml
+  [cloud]
+  supabase_url = "https://usppcgqgtdnmfamjyiqc.supabase.co"
+  supabase_key = "sb_publishable_vvdN4gl-p5Pf3v7sFYstAQ_3-_rgE7d"
+  ```
+- **Auto transport** tries WiFi first (2s mDNS scan), then falls back to cloud if configured.
+- **Pairing is WiFi-only** (ephemeral HTTP server + QR code). Both devices must be on the same network.
+- After pairing, config is saved to `~/.config/markpush/config.toml` with device ID, name, and AES key.
 
 ## Xcode Setup Notes (IMPORTANT — learned from experience)
 - **xcodegen** generates .xcodeproj from `ios/project.yml` — run `cd ios && xcodegen generate` after changes
@@ -133,6 +207,9 @@ cd mcp && npm run dev  # run locally
 - **iOS 26 Liquid Glass**: NavigationStack toolbar gets automatic system buttons (sidebar toggle "..."). Fix: use custom header + `.navigationBarHidden(true)` on root views
 - **Custom font + .fontWeight()**: Don't apply `.fontWeight()` to custom fonts with weight baked into the name (e.g. `Lora-SemiBold`). Swap font faces instead
 - **Portrait-only**: Must set `UIRequiresFullScreen = true` in Info.plist if only supporting portrait orientation
+- **xcode-select must point to Xcode.app**: if `xcode-select -p` returns `/Library/Developer/CommandLineTools`, fix with `sudo xcode-select -s /Applications/Xcode.app/Contents/Developer`
+- **Macro trust after xcodegen**: regenerating `.xcodeproj` resets macro trust — must re-trust all 4 TCA macros in build log (ComposableArchitectureMacros, CasePathsMacros, DependenciesMacrosPlugin, PerceptionMacros)
+- **DEVELOPMENT_TEAM in project.yml**: currently `MWU56C4YRR` — change in Xcode Signing & Capabilities if using a different Apple account
 
 ## Current Status
 Phase 1: CLI Tool ✅
@@ -158,7 +235,9 @@ Session Persistence ✅ (30-day re-auth via Keychain + UserDefaults lastAuthDate
 npm Published ✅ (@markpush/mcp-server@0.1.0, public, MIT)
 Physical Device ✅ (iPhone 17 Pro: auth, pairing, cloud push all verified)
 MCP Live ✅ (local source, cloud push to physical device working)
-**Next:** Test WiFi push on device, Feed→Reader→Library flow, MCP templates, paid Apple Developer → TestFlight, new PRD (dual-mode)
+MCP in Claude Code ✅ (`claude mcp add --scope user markpush -- npx -y @markpush/mcp-server`)
+iPhone 16 Pro Max Deploy ✅ (free Personal Team, WiFi pairing + push verified)
+**Next:** MCP templates, paid Apple Developer → TestFlight, new PRD (dual-mode)
 
 ## Key Docs
 - `docs/system-architecture.md` — Full system diagrams
