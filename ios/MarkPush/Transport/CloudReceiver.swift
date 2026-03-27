@@ -40,7 +40,11 @@ actor CloudReceiver {
         logger.info("Subscribed to pushes for user_id: \(self.userID, privacy: .public)")
 
         for await change in changes {
-            guard let payload = change.record["payload"]?.stringValue else { continue }
+            logger.info("Realtime INSERT received: \(change.record["id"]?.stringValue ?? "unknown", privacy: .public)")
+            guard let payload = change.record["payload"]?.stringValue else {
+                logger.warning("Skipping change — no payload field in record")
+                continue
+            }
 
             let decoder = JSONDecoder()
             // Handle Go's RFC3339Nano timestamps with fractional seconds.
@@ -59,8 +63,14 @@ actor CloudReceiver {
                     in: container, debugDescription: "Invalid date: \(str)")
             }
 
-            guard let data = payload.data(using: .utf8),
-                  let message = try? decoder.decode(PushMessage.self, from: data) else { continue }
+            guard let data = payload.data(using: .utf8) else {
+                logger.warning("Skipping change — payload not valid UTF-8")
+                continue
+            }
+            guard let message = try? decoder.decode(PushMessage.self, from: data) else {
+                logger.warning("Skipping change — failed to decode PushMessage from payload: \(String(payload.prefix(200)), privacy: .public)")
+                continue
+            }
 
             // Mark as delivered.
             let deliveredAt = ISO8601DateFormatter().string(from: .now)

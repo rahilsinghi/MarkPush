@@ -1,6 +1,9 @@
 import ComposableArchitecture
 import Foundation
+import os
 import UIKit
+
+private let logger = Logger(subsystem: "com.rahilsinghi.markpush", category: "Client")
 
 /// TCA dependency for MarkPush operations.
 struct MarkPushClient {
@@ -42,15 +45,26 @@ extension MarkPushClient: DependencyKey {
 
             // Start Cloud receiver if user is authenticated.
             // Use lowercased UUID to match CLI/MCP convention.
-            let userID = try? await AuthClient.supabase.auth.session.user.id.uuidString.lowercased()
-            if let userID {
+            do {
+                let session = try await AuthClient.supabase.auth.session
+                let userID = session.user.id.uuidString.lowercased()
+                logger.info("Cloud: authenticated as \(userID, privacy: .public)")
+
                 let cloudReceiver = CloudReceiver(
                     client: AuthClient.supabase,
                     userID: userID
                 )
                 activeCloudReceiver = cloudReceiver
                 // Start cloud in background — don't block WiFi.
-                Task { try? await cloudReceiver.start() }
+                Task {
+                    do {
+                        try await cloudReceiver.start()
+                    } catch {
+                        logger.error("Cloud: receiver failed — \(error.localizedDescription, privacy: .public)")
+                    }
+                }
+            } catch {
+                logger.warning("Cloud: no auth session — \(error.localizedDescription, privacy: .public). Cloud receiver disabled.")
             }
 
             // Merge WiFi and Cloud streams into one.

@@ -18,8 +18,8 @@ export async function autoSend(cfg: Config, msg: PushMessage): Promise<Transport
       await sendViaWiFi(device, msg);
       return { transport: "wifi" };
     }
-  } catch {
-    // WiFi failed, try cloud.
+  } catch (err) {
+    process.stderr.write(`⚠️  WiFi failed (${(err as Error).message}), falling back to cloud…\n`);
   }
 
   // Fall back to cloud.
@@ -27,6 +27,12 @@ export async function autoSend(cfg: Config, msg: PushMessage): Promise<Transport
     const receiverId = cfg.devices?.[0]?.id;
     if (!receiverId) {
       throw new Error("No paired device found. Run the pair_device tool first.");
+    }
+    if (!cfg.cloud.user_id) {
+      throw new Error(
+        "Cloud relay requires user_id but it's missing from config.toml. " +
+          "Re-run pair_device with cloud configured, or add user_id under [cloud] in ~/.config/markpush/config.toml.",
+      );
     }
     await sendViaCloud(
       {

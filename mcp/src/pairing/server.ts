@@ -9,7 +9,7 @@ import { networkInterfaces } from "node:os";
 import qrcode from "qrcode-terminal";
 import { deriveKey } from "../crypto/aes.js";
 import type { PairInitPayload } from "../protocol/messages.js";
-import { loadConfig, addPairedDevice, type PairedDevice } from "../config/store.js";
+import { loadConfig, addPairedDevice, saveConfig, type PairedDevice } from "../config/store.js";
 
 export interface PairResult {
   deviceName: string;
@@ -72,6 +72,23 @@ export async function startPairing(timeoutSec: number = 120): Promise<PairingSes
             res.end(JSON.stringify({ confirmed: true }));
 
             cleanup();
+
+            // Auto-populate user_id from Supabase if cloud is configured.
+            if (cfg.cloud?.supabase_url && cfg.cloud?.supabase_key && !cfg.cloud.user_id) {
+              fetchUserIdForDevice(cfg.cloud.supabase_url, cfg.cloud.supabase_key, data.device_id)
+                .then((userId) => {
+                  if (userId) {
+                    const updated = loadConfig();
+                    updated.cloud = { ...updated.cloud, user_id: userId };
+                    saveConfig(updated);
+                    process.stderr.write(`☁️  Auto-populated cloud user_id: ${userId}\n`);
+                  }
+                })
+                .catch((err) => {
+                  process.stderr.write(`⚠️  Could not auto-fetch user_id: ${(err as Error).message}\n`);
+                });
+            }
+
             resolveCompletion({ deviceName: data.device_name, deviceId: data.device_id });
           } catch (err) {
             res.writeHead(400);
@@ -140,6 +157,26 @@ export async function startPairing(timeoutSec: number = 120): Promise<PairingSes
       });
     });
   });
+}
+
+/** Fetch the Supabase user_id that owns a given device_id. */
+async function fetchUserIdForDevice(
+  supabaseUrl: string,
+  supabaseKey: string,
+  deviceId: string,
+): Promise<string | null> {
+  const resp = await fetch(
+    `${supabaseUrl}/rest/v1/devices?device_id=eq.${encodeURIComponent(deviceId)}&select=user_id&limit=1`,
+    {
+      headers: {
+        apikey: supabaseKey,
+        Authorization: `Bearer ${supabaseKey}`,
+      },
+    },
+  );
+  if (!resp.ok) return null;
+  const rows = (await resp.json()) as Array<{ user_id: string }>;
+  return rows[0]?.user_id ?? null;
 }
 
 /** Get the preferred local IP address. */
