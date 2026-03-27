@@ -51,8 +51,10 @@ CLI / MCP Server → AES-256-GCM encrypt → WiFi or Cloud → iOS App → Decry
 - Web Crypto API for AES-256-GCM (same format as Go/Swift)
 - Shared config with CLI at `~/.config/markpush/`
 - Tools: push_markdown, push_template, pair_device, unpair_device, list_devices, push_history
-- Global install for Claude Code: `claude mcp add --scope user markpush -- npx -y @markpush/mcp-server`
+- Global install (npm): `claude mcp add --scope user markpush -- npx -y @markpush/mcp-server`
+- Global install (local dev): `claude mcp add --scope user markpush -- node /path/to/MarkPush/mcp/dist/index.js`
 - Project-scoped install: `claude mcp add markpush -- npx -y @markpush/mcp-server`
+- **Use local build during development** — npm version lags behind and may miss critical fixes (e.g. user_id routing)
 - Can also pair and push directly via Node.js without Go CLI (see "Running Locally" section)
 - npm org: `@markpush` (owner: rahil2704)
 
@@ -168,15 +170,18 @@ const { autoSend } = require('./dist/transport/auto.js');
 
 ## WiFi vs Cloud Transport Notes
 - **mDNS discovery** (`_markpush._tcp`) requires the iOS app to be **open and in the foreground** with the WiFi receiver active. First attempt may timeout (2s default); retry or use longer timeout (10s).
-- **Cloud relay** is more reliable for background delivery. Configure in `~/.config/markpush/config.toml`:
+- **Cloud relay** requires `user_id` in config.toml for RLS routing. Configure in `~/.config/markpush/config.toml`:
   ```toml
   [cloud]
   supabase_url = "https://usppcgqgtdnmfamjyiqc.supabase.co"
   supabase_key = "sb_publishable_vvdN4gl-p5Pf3v7sFYstAQ_3-_rgE7d"
+  user_id = "<supabase-user-uuid>"
   ```
+- **CRITICAL: `user_id` under `[cloud]` is REQUIRED for cloud pushes.** Without it, pushes land in Supabase with NULL `user_id` and the iOS CloudReceiver silently drops them (Realtime filter is `.eq("user_id", value: userID)`). The MCP server now errors if `user_id` is missing; `pair_device` auto-populates it from Supabase's `devices` table if cloud is configured. If auto-populate fails (device not registered in Supabase), manually set it: find the UUID in Supabase Dashboard → Authentication → Users.
 - **Auto transport** tries WiFi first (2s mDNS scan), then falls back to cloud if configured.
 - **Pairing is WiFi-only** (ephemeral HTTP server + QR code). Both devices must be on the same network.
 - After pairing, config is saved to `~/.config/markpush/config.toml` with device ID, name, and AES key.
+- **MCP server for Claude Code (local dev)**: use `claude mcp add --scope user markpush -- node /path/to/MarkPush/mcp/dist/index.js` to point at the local build instead of the npm-published version. This ensures latest fixes are picked up immediately. The npm-published version may lag behind local code.
 
 ## Xcode Setup Notes (IMPORTANT — learned from experience)
 - **xcodegen** generates .xcodeproj from `ios/project.yml` — run `cd ios && xcodegen generate` after changes
@@ -201,6 +206,8 @@ const { autoSend } = require('./dist/transport/auto.js');
 - **Supabase OTP length**: 8 digits by default (configurable in dashboard), iOS accepts 4-8
 - **Supabase email template**: must include `{{ .Token }}` for OTP code — default only shows magic link
 - **Cloud Realtime RLS**: filter by `user_id` (not `receiver_id`) for authenticated iOS clients
+- **CloudReceiver silent failures**: MarkPushClient starts CloudReceiver with `try await` + logging (not `try?`). If auth session is missing or expired, CloudReceiver is never created and cloud pushes are silently dropped. Check Console.app filter `com.rahilsinghi.markpush` category `Client` for "Cloud: no auth session" warnings. The CloudReceiver itself logs to category `Cloud`.
+- **Cloud push user_id NULL bug**: if pushes land in Supabase with `user_id = null`, CloudReceiver's Realtime filter (`.eq("user_id", value: userID)`) never fires. Root cause is always the sender (CLI/MCP) not including `user_id`. Fix: ensure `user_id` is set in `~/.config/markpush/config.toml` under `[cloud]`. Verify with: `curl -H "apikey: $SECRET_KEY" -H "Authorization: Bearer $SECRET_KEY" "$SUPABASE_URL/rest/v1/pushes?select=id,user_id&order=created_at.desc&limit=5"`
 - **SharedModelContainer**: singleton `ModelContainer` shared between app views and TCA PersistenceClient
 - **New files after changes**: run `cd ios && xcodegen generate` to include them in the Xcode project
 - **Xcode beta path**: may be at `/Users/rahilsinghi/Downloads/Xcode-beta.app` — use `sudo xcode-select -s` to switch
@@ -232,12 +239,23 @@ Cloud E2E ✅ (CLI → Supabase REST → iOS Realtime → Feed, user_id routing)
 Feed → Reader Navigation ✅ (tap to open, full markdown rendering with code blocks, tables, tags)
 SwiftData Persistence ✅ (PersistenceClient, SharedModelContainer, documents in Library)
 Session Persistence ✅ (30-day re-auth via Keychain + UserDefaults lastAuthDate)
-npm Published ✅ (@markpush/mcp-server@0.1.0, public, MIT)
+npm Published ✅ (@markpush/mcp-server@0.1.0 on npm, 0.2.0 local — republish needed)
 Physical Device ✅ (iPhone 17 Pro: auth, pairing, cloud push all verified)
 MCP Live ✅ (local source, cloud push to physical device working)
-MCP in Claude Code ✅ (`claude mcp add --scope user markpush -- npx -y @markpush/mcp-server`)
+MCP in Claude Code ✅ (local build: `claude mcp add --scope user markpush -- node /path/to/mcp/dist/index.js`)
 iPhone 16 Pro Max Deploy ✅ (free Personal Team, WiFi pairing + push verified)
 **Next:** MCP templates, paid Apple Developer → TestFlight, new PRD (dual-mode)
+
+## Debugging Cloud Push Issues
+If pushes aren't arriving on the iOS app via cloud relay, check in this order:
+
+1. **Is `user_id` set in config.toml?** — `cat ~/.config/markpush/config.toml` → must have `user_id = "<uuid>"` under `[cloud]`. Without it, pushes are inserted with NULL user_id and iOS drops them.
+2. **Did the push actually land in Supabase?** — Query with the service role key (in `.env`): `curl -H "apikey: $SUPABASE_SECRET_KEY" -H "Authorization: Bearer $SUPABASE_SECRET_KEY" "$SUPABASE_URL/rest/v1/pushes?select=id,user_id&order=created_at.desc&limit=5"`. Check that `user_id` is not null.
+3. **Is the iOS app authenticated?** — Check Console.app (filter: `com.rahilsinghi.markpush`, category: `Client`). Look for `"Cloud: authenticated as <uuid>"` on app launch. If you see `"Cloud: no auth session"`, the user needs to re-authenticate in the app.
+4. **Is CloudReceiver subscribed?** — Check Console.app category `Cloud` for `"Subscribed to pushes for user_id: <uuid>"`. If missing, the Realtime subscription failed.
+5. **Is the MCP server using the right version?** — `claude mcp list` shows the command. If it's `npx -y @markpush/mcp-server`, it's the npm version (may be stale). Switch to local build: `claude mcp remove markpush --scope user && claude mcp add --scope user markpush -- node /path/to/mcp/dist/index.js`
+6. **Supabase RLS**: anon key can INSERT with any user_id (or NULL). Authenticated users can only SELECT rows where `user_id = auth.uid()`. Realtime also respects this filter.
+7. **Quick test bypass**: insert directly with service role key and correct user_id to isolate iOS vs MCP issues (see Debugging section in relay/).
 
 ## Key Docs
 - `docs/system-architecture.md` — Full system diagrams
